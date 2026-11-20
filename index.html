@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ADAA — Family Finance</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--text:#182230;--muted:#667085;--accent:#0f766e;--border:#e5e7eb;--green:#059669;--red:#dc2626}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:#0b2535;color:white;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:22px}header span{color:#c7d2fe;font-size:13px}
+main{max-width:1250px;margin:auto;padding:24px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 3px 12px #0f172a08}.metric small{color:var(--muted)}.metric h2{margin:10px 0 2px;font-size:26px}.metric p{margin:4px 0;color:var(--muted);font-size:13px}.section{margin-top:20px}.section h2{font-size:18px;margin:0 0 14px}.layout{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0}button{background:var(--accent);color:white;border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:600}button.secondary{background:#e5e7eb;color:#111827}button.danger{background:#fee2e2;color:#991b1b}input,select{padding:10px;border:1px solid var(--border);border-radius:9px;background:white;color:var(--text);max-width:100%}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 9px;border-bottom:1px solid var(--border);font-size:14px}th{color:var(--muted);font-size:12px;text-transform:uppercase}td.amount{text-align:right;font-weight:600}.tablewrap{overflow:auto}.tag{display:inline-block;border-radius:20px;padding:4px 8px;background:#d9f3ee;color:#0f766e;font-size:12px}.expense{color:var(--red)}.income{color:var(--green)}.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}.formgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.formgrid>*{min-width:0}.formgrid button{grid-column:span 1}.note{font-size:12px;color:var(--muted);margin-top:12px}.empty{text-align:center;color:var(--muted);padding:24px}.hidden{display:none}.toolbar#transactionFilters input,.toolbar#transactionFilters select{min-width:145px}.month{font-weight:600} @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.layout,.charts{grid-template-columns:1fr}.formgrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){main{padding:14px}.grid{gap:9px}.card{padding:13px}.metric h2{font-size:20px}header{padding:15px}.formgrid{grid-template-columns:1fr}.toolbar input,.toolbar select{width:100%}.toolbar button{width:100%}.cal-day{min-height:58px;padding:4px;font-size:10px}.cal-event{font-size:10px}}
+
+.entry-mode .admin-only{display:none!important}.login-overlay{position:fixed;inset:0;z-index:9999;background:#0b2535;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:#fff;color:#182230;border-radius:20px;padding:32px;max-width:360px;width:100%;text-align:center;box-shadow:0 25px 80px #0005}
+.login-box h1{color:#111827;margin:0 0 6px}.login-box p{color:#667085;margin:0 0 22px}.pin-input{font-size:24px;text-align:center;letter-spacing:12px;width:100%;margin-bottom:14px}.login-error{color:#dc2626;min-height:20px;font-size:13px}.login-box button{width:100%;margin-top:10px}
+
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px}.cal-head{text-align:center;font-size:12px;color:var(--muted);font-weight:700}.cal-day{border:1px solid var(--border);border-radius:8px;min-height:74px;padding:6px;font-size:12px;overflow:hidden}.cal-day.today{border:2px solid var(--accent)}.cal-day .cal-num{font-weight:700}.cal-event{margin-top:4px;background:#d9f3ee;color:#0f766e;padding:2px 4px;border-radius:5px;overflow-wrap:anywhere}.cal-emi{background:#fef3c7;color:#92400e}.cal-goal{background:#dcfce7;color:#166534}.mini{font-size:12px;color:var(--muted)}
+
+.dashboard-overview{margin-top:20px}.overview-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.overview-head h2{margin:0}.overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.overview-grid h3{font-size:16px;margin:0 0 14px}.ov-row{margin:12px 0}.ov-row-head{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:5px}.ov-track{height:9px;border-radius:10px;background:#e5e7eb;overflow:hidden}.ov-fill{height:100%;border-radius:10px;background:var(--accent)}.ov-alert{background:#fff7ed;color:#9a3412;border-radius:10px;padding:10px;font-size:13px}.ov-good{background:#ecfdf5;color:#065f46;border-radius:10px;padding:10px;font-size:13px}.ov-small{color:var(--muted);font-size:12px}.overview-grid .card{min-height:190px}
+@media(max-width:700px){.overview-grid{grid-template-columns:1fr}.overview-head{align-items:flex-start;flex-direction:column}.overview-head button{width:100%}}
+
+
+/* ADAA mobile-first usability refinement */
+.mobile-nav{display:none}
+@media(max-width:700px){
+ body{font-size:15px}header{padding:14px 16px;gap:10px}header h1{font-size:20px}header>span:last-child{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+ main{padding:12px;padding-bottom:88px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{min-width:0}.metric h2{font-size:clamp(17px,5vw,23px);overflow-wrap:anywhere}.metric small{font-size:12px}
+ .card{border-radius:14px;padding:13px}.section{margin-top:14px}.overview-grid{gap:10px}.overview-grid .card{min-height:unset}
+ button,input,select{min-height:44px;font-size:16px}button{padding:11px 13px}.toolbar{gap:8px}.toolbar>*{min-width:0}.toolbar#transactionFilters{display:grid;grid-template-columns:1fr 1fr}.toolbar#transactionFilters input{grid-column:1/-1;width:100%;min-width:0}.toolbar#transactionFilters select{width:100%;min-width:0}
+ .formgrid{grid-template-columns:1fr 1fr;gap:9px}.formgrid>*{width:100%;min-width:0}.formgrid #description{grid-column:1/-1}.formgrid button{grid-column:1/-1}.formgrid #transferFields{grid-column:1/-1}
+ .layout,.charts{grid-template-columns:1fr}.tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.tablewrap table{min-width:650px}th,td{padding:9px 8px;white-space:nowrap}
+ .calendar-grid{gap:3px}.cal-day{min-height:58px;padding:3px;font-size:10px}.cal-event{font-size:9px;line-height:1.2}
+ .mobile-nav{display:flex;position:fixed;z-index:999;bottom:0;left:0;right:0;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right));background:#0b2535;box-shadow:0 -6px 24px #0002;justify-content:space-around;gap:4px}
+ .mobile-nav button{background:transparent;color:#e5f3f5;padding:7px 4px;min-height:54px;flex:1;border-radius:10px;font-size:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}.mobile-nav button:active{background:#17465b}.mobile-nav .navicon{font-size:18px;line-height:1}
+ #quickAdd{width:100%}.overview-head{gap:8px}
+}
+@media(max-width:380px){.grid{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:1fr}.formgrid>*{grid-column:1/-1}.toolbar#transactionFilters{grid-template-columns:1fr}}
+
+
+/* Transaction-entry UX refinements */
+#transactionEntry .formgrid{align-items:stretch}#transactionEntry #amount{font-weight:700}#transactionEntry #entrySubmit{min-height:48px;font-size:16px}
+.entry-shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}.entry-shortcuts button{background:#e6f4f1;color:#0f766e;padding:8px 12px;min-height:40px}
+@media(max-width:700px){#transactionEntry .formgrid{gap:10px}#transactionEntry .formgrid>*{min-height:48px}#transactionEntry #entrySubmit{position:sticky;bottom:80px;z-index:2;box-shadow:0 5px 15px #0002}}
+
+@media print{body>*{visibility:hidden!important}#monthlyReports,#monthlyReports *{visibility:visible!important}#monthlyReports{position:absolute!important;left:0;top:0;width:100%;border:none!important;box-shadow:none!important}#monthlyReports .toolbar{display:none!important}#monthlyReports table{width:100%;border-collapse:collapse}#monthlyReports th,#monthlyReports td{border:1px solid #999;padding:6px;text-align:left}#monthlyReports h2{font-size:22px}}
+
+
+/* ADAA UI consistency and final polish */
+:root{--accent-dark:#0b5f59;--focus:#14b8a6;--surface-soft:#f8fafc;--shadow-soft:0 8px 24px #0f172a0a}
+html{scroll-behavior:smooth;scroll-padding-top:18px}
+body{line-height:1.45}
+button,input,select{font:inherit}
+button{transition:background-color .16s ease,box-shadow .16s ease,transform .16s ease;box-shadow:0 1px 2px #0f172a12}
+button:hover{filter:brightness(.97);box-shadow:0 3px 9px #0f172a16}
+button:active{transform:translateY(1px)}
+button.secondary{background:#eef2f6;color:#243447}
+button.secondary:hover{background:#e2e8f0}
+button.danger{background:#fff1f2;color:#b42318}
+button.danger:hover{background:#ffe4e6}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+:focus-visible{outline:3px solid #14b8a6!important;outline-offset:2px}
+input,select{min-height:42px;width:auto;transition:border-color .16s ease,box-shadow .16s ease}
+input:hover,select:hover{border-color:#b6c2d0}
+input:focus,select:focus{border-color:var(--focus);box-shadow:0 0 0 3px #14b8a61c;outline:none}
+input[type="file"]{min-height:unset}
+label{color:#344054;font-size:13px;font-weight:600}
+header{box-shadow:0 4px 18px #0b25351a}
+header button{vertical-align:middle}
+main{padding-top:22px}
+.section{scroll-margin-top:18px}
+.section.card>h2,.card>h2{letter-spacing:-.02em}
+.card{box-shadow:var(--shadow-soft)}
+.metric{position:relative;overflow:hidden}
+.metric small{font-weight:650;letter-spacing:.01em}
+.metric h2{letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.note,.mini{line-height:1.5}
+.tag{font-weight:650;white-space:nowrap}
+.tablewrap table{font-variant-numeric:tabular-nums}
+tbody tr:hover{background:#f8fafc}
+th{letter-spacing:.045em}
+.toolbar{row-gap:9px}
+.formgrid{align-items:center}
+.formgrid input,.formgrid select{width:100%;min-width:0}
+.formgrid button{min-height:44px}
+.entry-shortcuts button{box-shadow:none}
+.entry-shortcuts button:hover{background:#d4eee8}
+.overview-grid .card,.charts .card{box-shadow:none;background:var(--surface-soft)}
+.cal-day{background:#fff}
+.cal-day.today{background:#f0fdfa}
+.login-box{box-shadow:0 24px 70px #0004}
+.login-box button{min-height:46px}
+.mobile-nav button{box-shadow:none;opacity:.86}
+.mobile-nav button.is-active{background:#17465b;opacity:1;color:#fff}
+.mobile-nav button.is-active .navicon{transform:translateY(-1px)}
+.mobile-nav .navicon{transition:transform .16s ease}
+#transactionsPanel,#transactionEntry,#dashboardOverview,#paymentCalendar,#financialInsights{scroll-margin-top:14px}
+@media(max-width:700px){
+ html{scroll-padding-bottom:96px}
+ main{padding-top:14px}
+ header{position:relative}
+ .section.card,.section.layout>.card{margin-top:14px}
+ .toolbar{align-items:stretch}
+ .toolbar label{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+ .toolbar label input{flex:1;min-width:135px}
+ .overview-head h2{font-size:20px}
+ .mobile-nav{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+ .mobile-nav button{font-weight:600;letter-spacing:.01em}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+
+/* Financial planning & forecast presentation */
+#financialForecast .overview-head{align-items:flex-start}
+#financialForecast .overview-head label{display:flex;align-items:center;gap:8px;white-space:nowrap}
+#financialForecast .metric h2{font-size:clamp(19px,2.3vw,26px)}
+#financialForecast .forecast-positive{color:#047857}
+#financialForecast .forecast-negative{color:#b42318}
+#financialForecast .forecast-callout{padding:11px 12px;border-radius:10px;background:#f0fdfa;color:#115e59;font-size:13px;margin:9px 0}
+#financialForecast .forecast-callout.warn{background:#fff7ed;color:#9a3412}
+#financialForecast .forecast-muted{color:var(--muted);font-size:12px;line-height:1.5}
+#financialForecast h3{font-size:15px;margin:0 0 12px}
+#financialForecast canvas{max-height:260px}
+@media(max-width:700px){#financialForecast .overview-head label{width:100%;justify-content:space-between}#financialForecast .overview-head label select{flex:1}#financialForecast .tablewrap table{min-width:720px}}
+
+
+/* Supabase cloud connection and authentication */
+.cloud-auth{margin-top:8px;text-align:left}.cloud-auth input{width:100%;margin:5px 0}.cloud-auth label{display:block;margin:10px 0 4px}.cloud-caption{font-size:12px;color:#667085;line-height:1.45}.cloud-actions{display:grid;grid-template-columns:1fr;gap:8px;margin:8px 0}.cloud-actions button{width:100%;margin:0}.cloud-auth>button,.cloud-auth #cloudHouseholdSetup button{width:100%;margin:6px 0}.cloud-connection{display:inline-flex;padding:7px 10px;border-radius:999px;background:#eef2f6;color:#344054;font-size:13px;font-weight:650}.cloud-connection.connected{background:#dcfce7;color:#166534}.cloud-connection.conflict{background:#ffedd5;color:#9a3412}#cloudSyncPanel .toolbar{margin:10px 0}
+@media(max-width:520px){.login-box{padding:22px}.cloud-actions{grid-template-columns:1fr}.cloud-actions button{min-height:44px}}
+
+</style>
+</head>
+<body>
+<div id="loginOverlay" class="login-overlay"><div class="login-box">
+<h1>✦ ADAA</h1><p id="loginIntro">Family Finance · Enter your PIN</p>
+<div id="localPinLogin">
+<input id="pinInput" class="pin-input" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
+<div id="loginError" class="login-error"></div><button id="loginBtn">Unlock</button>
+<p style="font-size:11px;margin-top:18px;color:#98a2b3">Offline mode: PIN protection is browser-only and is not server-side security.</p>
+</div>
+<div id="cloudLogin" class="cloud-auth hidden">
+<p class="cloud-caption">Sign in with your family cloud account</p>
+<input id="cloudEmail" type="email" autocomplete="username" placeholder="Admin-created account email">
+<input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Password">
+<div class="cloud-actions"><button type="button" id="cloudSignIn">Sign in</button></div>
+<p class="cloud-caption">Login is restricted to accounts created by the ADAA Admin. Public signup is not available.</p>
+<div id="cloudHouseholdSetup" class="hidden"><label for="cloudHouseholdName">Create your family workspace</label><input id="cloudHouseholdName" maxlength="100" placeholder="Household name (e.g. ADAA Family)" value="ADAA Family"><button type="button" id="cloudCreateHousehold">Create family workspace</button></div>
+<button type="button" class="secondary hidden" id="cloudContinue">Continue to ADAA</button>
+<div id="cloudAuthStatus" class="login-error" role="status" aria-live="polite"></div>
+<button type="button" class="secondary hidden" id="cloudSignOutOverlay">Sign out of cloud account</button>
+<p class="cloud-caption">Private login only. Supabase authenticates each pre-created account; PostgreSQL stores the shared family records centrally.</p>
+</div>
+</div></div>
+
+<header><div><h1>✦ ADAA</h1><span>Family Finance · Your family, your money, your future</span></div><span>₹ INR · <span id="roleLabel">Locked</span> <button id="lockBtn" class="secondary">Lock / Logout</button></span></header>
+<main><div style="margin:0 0 18px;color:#667085;font-size:14px">Manage your family’s income, expenses, savings and goals — all in one place.</div>
+<div class="toolbar"><label>Month <input type="month" id="month"></label><button id="shareReport" class="secondary">Share Monthly Report WhatsApp</button><button id="export" class="admin-only">Export CSV</button><button class="secondary admin-only" id="backup">Backup JSON</button><label class="secondary admin-only" style="padding:8px 12px;border-radius:9px;cursor:pointer">Restore JSON <input id="restore" type="file" accept=".json" style="display:none"></label><button class="secondary admin-only" id="clear">Clear data</button></div>
+
+<section class="section card admin-only" id="backupCenter"><h2>Backup & Data Protection</h2><p class="note">Protect your central family finance data. Download a JSON backup before major changes or restores.</p><div class="toolbar"><button id="backupNow">Download Full Backup</button><button class="secondary" id="backupReminder">Backup Reminder Info</button><label class="secondary" style="padding:8px 12px;border-radius:9px;cursor:pointer">Restore Backup <input id="restoreCenter" type="file" accept=".json,application/json" style="display:none"></label></div><div id="backupStatus" class="note">Backup includes transactions, budgets, recurring bills, EMIs, goals, opening balances and accounts.</div><div class="note"><b>Recommended:</b> Keep copies in at least two places. The live records remain in Supabase; JSON files are independent recovery backups.</div></section>
+
+
+<section class="section card" id="cloudSyncPanel"><h2>Central Family Database</h2><p class="note">ADAA uses one central Supabase PostgreSQL database. Every device reads and writes the same family records directly; there is no manual upload or sync workflow.</p><div id="cloudConnectionInfo" class="cloud-connection">Connecting to central database…</div><div class="toolbar"><button type="button" id="cloudSyncNow" class="secondary hidden">Retry failed save</button><button type="button" id="cloudReloadRemote" class="secondary hidden">Refresh central data</button><button type="button" id="cloudLogout" class="secondary hidden">Cloud sign out</button></div><p id="cloudSyncStatus" class="note" aria-live="polite">Connect to Supabase to load the family's central records.</p><p class="note">Transactions, accounts, budgets, recurring bills, loans, savings goals and opening balances are stored in separate database tables. Row Level Security isolates each household. Admins manage family settings; Entry users can add transactions. JSON backup remains available for recovery.</p></section>
+
+<section class="section card admin-only" id="securityCenter"><h2>Security & Access Control</h2><p class="note">Cloud authentication and Admin / Entry permissions are enforced by Supabase. The inactivity lock is a browser setting.</p><form id="pinChangeForm" class="toolbar"><input id="newAdminPin" type="password" inputmode="numeric" maxlength="8" placeholder="New Admin PIN" minlength="4"><input id="newEntryPin" type="password" inputmode="numeric" maxlength="8" placeholder="New Entry User PIN" minlength="4"><button type="submit">Update PINs</button></form><label>Auto-lock after inactivity <select id="idleMinutes"><option value="0">Disabled</option><option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="30">30 minutes</option></select></label><p class="note" id="securityStatus">Default PINs are 1234 (Admin) and 5678 (Entry User) until changed.</p></section>
+
+<div class="grid">
+<div class="card metric"><small>Income</small><h2 id="income">₹0</h2><p>Selected month</p></div>
+<div class="card metric"><small>Expenses</small><h2 id="expense">₹0</h2><p>Selected month</p></div>
+<div class="card metric"><small>Balance</small><h2 id="balance">₹0</h2><p>Income minus expenses</p></div>
+<div class="card metric"><small>Budget remaining</small><h2 id="budgetRemaining">₹0</h2><p>Against configured budgets</p></div>
+</div>
+
+<div class="section dashboard-overview" id="dashboardOverview">
+ <div class="overview-head"><div><h2>Family overview</h2><p class="note">A quick snapshot of this month's finances.</p></div><button id="quickAdd" type="button">+ Add transaction</button></div>
+ <div class="overview-grid">
+  <div class="card"><h3>Monthly spending by member</h3><div id="overviewMembers"></div></div>
+  <div class="card"><h3>Budget health</h3><div id="overviewBudget"></div></div>
+  <div class="card"><h3>Upcoming payments</h3><div id="overviewUpcoming"></div></div>
+  <div class="card"><h3>Savings goals</h3><div id="overviewGoals"></div></div>
+ </div>
+</div>
+<div class="section card" id="financialInsights"><h2>Family Financial Insights</h2><p class="note">Insights based on recorded transactions for the selected month.</p><div class="grid" id="insightMetrics"></div><div class="overview-grid" style="margin-top:16px"><div class="card"><h3>Category spending analysis</h3><div id="insightCategories"></div></div><div class="card"><h3>Month-over-month comparison</h3><div id="insightComparison"></div></div></div></div>
+
+\n<div class="section card" id="financialForecast">
+ <div class="overview-head"><div><h2>Financial Planning & Forecasting</h2><p class="note">Estimate future cash flow using your recorded history, active recurring bills, EMIs and dated plans.</p></div><label>Forecast horizon <select id="forecastHorizon"><option value="3">3 months</option><option value="6" selected>6 months</option><option value="12">12 months</option></select></label></div>
+ <div class="grid" id="forecastMetrics"></div>
+ <div class="overview-grid" style="margin-top:16px">
+  <div class="card"><h3>Monthly planning position</h3><div id="forecastSummary"></div></div>
+  <div class="card"><h3>Projected closing balance</h3><canvas id="forecastChart" aria-label="Projected closing balance chart"></canvas></div>
+ </div>
+ <div class="section"><h3>Month-by-month projection</h3><div class="tablewrap"><table><thead><tr><th>Month</th><th>Income</th><th>Expenses</th><th>Net cash flow</th><th>Estimated closing balance</th></tr></thead><tbody id="forecastRows"></tbody></table></div></div>
+ <p class="note" id="forecastMethod">Estimate only. It is not a bank balance or a guarantee. Forecasts use historical averages and the active plans recorded in ADAA.</p>
+</div>
+
+<div class="section card" id="transactionEntry"><h2>Add transaction</h2>
+<form id="entry" class="formgrid">
+<input type="date" id="date" required><select id="type"><option>Expense</option><option>Income</option><option>Transfer</option></select>
+<select id="category"></select><select id="member"><option value="">Common / Family</option><option>Advik</option><option>Divya</option><option>Abhijith</option><option>Alankritha</option></select><input id="description" placeholder="Description" required>
+<select id="payment"><option>Cash</option><option>Bank</option><option>UPI</option><option>Credit Card</option><option>Debit Card</option><option>Other</option></select>
+<select id="account"><option>Cash</option><option>Bank Account</option><option>UPI</option><option>Credit Card</option><option>Wallet</option><option>Other</option></select>
+<div id="transferFields" class="hidden" style="grid-column:span 2"><select id="transferFrom"><option>Cash</option><option>Bank Account</option><option>UPI</option><option>Credit Card</option><option>Wallet</option><option>Other</option></select> <select id="transferTo"><option>Bank Account</option><option>Cash</option><option>UPI</option><option>Credit Card</option><option>Wallet</option><option>Other</option></select></div>
+<input id="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Amount ₹" required><button type="submit" id="entrySubmit">Add Expense</button>
+</form><div class="entry-shortcuts" aria-label="Quick amount shortcuts"><button type="button" data-amount="500">₹500</button><button type="button" data-amount="1000">₹1,000</button><button type="button" data-amount="2000">₹2,000</button><button type="button" data-amount="5000">₹5,000</button><button type="button" data-amount="10000">₹10,000</button></div><p class="note">Transactions are saved in this browser. Export backups regularly. Set a future date for upcoming expenses and enable reminders.</p></div>
+<div class="section layout"><div class="card"><h2>Expenses by family member</h2><div id="memberSummary"></div><button class="secondary" id="shareFamily">Share monthly summary on WhatsApp</button></div><div class="card"><h2>Upcoming expense reminders</h2><p class="note">Upcoming expense entries dated within the next 30 days appear here. Reminder alert appears when you open ADAA.</p><div id="upcomingRows"></div></div></div>
+
+<div class="section card"><h2>Monthly Payment Calendar</h2><p class="note">Transactions, EMI payments and goal milestones for the selected month.</p><div id="paymentCalendar" class="calendar-grid"></div></div>
+<section class="section layout"><div class="card admin-only"><h2>EMI & Loan Management</h2><div id="emiSummary" class="metrics"></div><form id="emiForm" class="toolbar"><input id="emiName" placeholder="Loan name (e.g. Car Loan)" required><input id="emiLender" placeholder="Bank / lender"><input id="emiPrincipal" type="number" min="0" step="0.01" placeholder="Original loan amount ₹"><input id="emiOutstanding" type="number" min="0" step="0.01" placeholder="Current outstanding ₹"><input id="emiRate" type="number" min="0" step="0.01" placeholder="Interest rate %"><input id="emiTenure" type="number" min="1" placeholder="Total installments"><input id="emiPaidCount" type="number" min="0" placeholder="Installments paid"><input id="emiAmount" type="number" min="0.01" step="0.01" placeholder="Monthly EMI ₹" required><input id="emiDay" type="number" min="1" max="28" placeholder="Due day" required><input id="emiEnd" type="date" title="End date / final due date"><button>Add Loan</button></form><div id="emiRows"></div><p class="note">Monthly EMI transactions are generated once for each selected month. Loan principal/outstanding and installment counts are informational fields maintained by you; they are not recalculated from interest amortization.</p></div>
+<div class="card admin-only"><h2>Savings Goals</h2><form id="goalForm" class="toolbar"><input id="goalName" placeholder="Goal name" required><input id="goalTarget" type="number" min="1" step="1" placeholder="Target ₹" required><input id="goalSaved" type="number" min="0" step="1" placeholder="Already saved ₹"><input id="goalDate" type="date" title="Target date"><button>Add goal</button></form><div id="goalRows"></div></div></div>
+<section class="section card" id="monthlyReports"><h2>Monthly Reports & Export</h2><p class="note">Printable summary for the currently selected month.</p><div class="toolbar"><button id="printReport">Print / Save PDF</button><button class="secondary" id="reportCSV">Export Report CSV</button></div><div id="reportContent"></div></section>
+
+<div class="section layout">
+<div class="card"><h2>Spending by category</h2><canvas id="pie"></canvas></div>
+<div class="card"><h2>Monthly trend</h2><canvas id="trend"></canvas></div>
+</div>
+<div class="section layout">
+<div class="card admin-only" id="budgetPanel"><h2>Monthly budgets / allocation</h2><form id="budgetForm" class="toolbar"><select id="budgetCat"></select><input id="budgetAmt" type="number" min="0" placeholder="Budget ₹" required><button>Set budget</button></form><div class="tablewrap"><table><thead><tr><th>Category</th><th>Budget</th><th>Spent</th><th>Left</th></tr></thead><tbody id="budgetRows"></tbody></table></div></div>
+
+<div class="section card" id="smartAlerts"><h2>Smart Budget & Spending Alerts</h2><p class="note">Alerts for categories reaching 80% of budget, exceeding budget, and unusually large expenses (₹10,000 or more).</p><div id="alertRows"></div></div>
+<div class="card admin-only" id="recurringManager"><h2>Recurring Expenses & Bill Management</h2><div id="recurringSummary" class="metrics"></div><form id="recurringForm" class="toolbar"><input id="recDescription" placeholder="Bill name" required><select id="recCategory"></select><input id="recAmount" type="number" min="0.01" step="0.01" placeholder="Amount ₹" required><select id="recMember"><option value="">Common / Family</option><option>Advik</option><option>Divya</option><option>Abhijith</option><option>Alankritha</option></select><input id="recDay" type="number" min="1" max="28" placeholder="Due day (1-28)" required><select id="recFrequency"><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select><button>Add recurring bill</button></form><div id="recurringRows"></div><p class="note">Monthly recurring bills are generated once per month. Paused templates are skipped. Marking a bill paid records the payment transaction and prevents duplicates for that period.</p></div>
+<div class="card admin-only" id="accountManagement"><h2>Account Management</h2><p class="note">Add or rename your individual bank accounts, wallets and cards. Changes are saved in this browser.</p><form id="accountManageForm" class="toolbar"><input id="newAccountName" placeholder="Account name (e.g. SBI Savings)" required><select id="newAccountType"><option>Cash</option><option>Bank Account</option><option>UPI</option><option>Credit Card</option><option>Wallet</option><option>Other</option></select><button>Add account</button></form><div id="accountManageRows"></div></div><div class="section card" id="accountLedger"><h2>Account balances & ledger</h2><p class="note">Set opening balances, then ADAA calculates balances from recorded income, expenses and transfers. Credit Card is shown as outstanding balance.</p><div id="accountBalanceRows"></div><form id="openingBalanceForm" class="toolbar admin-only"><select id="openingAccount"></select><input id="openingAmount" type="number" step="0.01" placeholder="Opening balance ₹" required><button type="submit">Set opening balance</button></form><p class="note">Opening balance values are the balances as of your starting date. Transfers between accounts are not counted as income or expenses.</p></div>
+<div class="card" id="transactionsPanel"><h2>Transactions</h2><div class="toolbar" id="transactionFilters"><input id="txSearch" placeholder="Search description or category"><select id="txFilterType"><option value="">All types</option><option>Expense</option><option>Income</option><option>Transfer</option></select><select id="txFilterMember"><option value="">All family</option><option value="Common">Common / Family</option><option>Advik</option><option>Divya</option><option>Abhijith</option><option>Alankritha</option></select><select id="txFilterPayment"><option value="">All payment/account</option><option>Cash</option><option>Bank</option><option>UPI</option><option>Credit Card</option><option>Debit Card</option><option>Wallet</option><option>Other</option></select></div><div class="tablewrap"><table><thead><tr><th>Date</th><th>Details</th><th>Category</th><th>Member</th><th>Account / method</th><th>Amount</th><th></th></tr></thead><tbody id="rows"></tbody></table></div></div>
+</div>
+</main>
+<nav class="mobile-nav" aria-label="Mobile navigation"><button type="button" data-target="dashboardOverview"><span class="navicon">⌂</span>Home</button><button type="button" data-target="transactionEntry"><span class="navicon">＋</span>Add</button><button type="button" data-target="transactionsPanel"><span class="navicon">⇄</span>Transactions</button><button type="button" data-target="paymentCalendar"><span class="navicon">▦</span>Calendar</button><button type="button" data-target="financialInsights"><span class="navicon">▤</span>Insights</button></nav>
+
+<script src="supabase-config.js"></script>
+<script>
+const cats=["Rent","Groceries","Vegetables","Milk","Fruits","Internet","Water","Electricity","Mobile Recharge","Gas","Transport/Petrol","School Fees","School Bus","Education/Class","Insurance","Medical","Dining","Shopping","Entertainment","Subscriptions","Credit Card Payment","Savings","Other"];
+// Finance records are loaded from Supabase PostgreSQL after authentication.
+// Browser localStorage is intentionally not used for transactions or financial settings.
+let transactions=[], budgets={}, recurring=[], emis=[], goals=[], openingBalances={};
+const members=["Advik","Divya","Abhijith","Alankritha"];
+let accountDefs=["Cash","Bank Account","UPI","Credit Card","Wallet","Other"].map(name=>({name,type:name}));
+let ledgerAccounts=accountDefs.map(a=>a.name);
+let supabaseClient=null, cloudMode=false, cloudSession=null, cloudHouseholdId=null, cloudHouseholdName="", cloudMemberRole="";
+let centralDataReady=false, centralVersion=0, centralBaseline=null, centralSaveTimer=null, centralSaveInFlight=false, centralSaveAgain=false, centralConflict=false, centralNeedsReload=false, centralVersionCheckInFlight=false;
+const $=id=>document.getElementById(id), money=n=>new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n||0);
+function fillCats(){["category","budgetCat","recCategory"].forEach(id=>$(id).innerHTML=cats.map(c=>`<option>${c}</option>`).join(""))}
+function save(){if(cloudMode&&centralDataReady&&!centralConflict)queueCentralSave();}
+function month(){return $("month").value}
+function monthlyTx(){return transactions.filter(t=>t.date.slice(0,7)===month())}
+function sums(){let t=monthlyTx(),inc=t.filter(x=>x.type==="Income").reduce((a,x)=>a+x.amount,0),exp=t.filter(x=>x.type==="Expense").reduce((a,x)=>a+x.amount,0),bud=Object.values(budgets).reduce((a,x)=>a+x,0);return {inc,exp,bud}}
+let pieChart,trendChart;
+function renderAccountManagement(){
+ ledgerAccounts=accountDefs.map(a=>a.name);
+ const rows=$("accountManageRows");if(rows)rows.innerHTML=accountDefs.map((a,i)=>`<div class="toolbar"><strong>${escapeHtml(a.name)}</strong><span class="tag">${escapeHtml(a.type)}</span><button class="secondary" onclick="renameAccount(${i})">Rename</button>${i>=6?`<button class="danger" onclick="removeAccount(${i})">Remove</button>`:""}</div>`).join("");
+ const options=ledgerAccounts.map(a=>`<option>${escapeHtml(a)}</option>`).join("");
+ ["account","transferFrom","transferTo","openingAccount"].forEach(id=>{let el=$(id);if(el){let prev=el.value;el.innerHTML=options;if(ledgerAccounts.includes(prev))el.value=prev;}});
+}
+function isCreditAccount(name){return accountDefs.some(a=>a.name===name&&a.type==="Credit Card");}
+function renderLedger(){
+ renderAccountManagement();
+ const balances={};ledgerAccounts.forEach(a=>balances[a]=Number(openingBalances[a]||0));
+ transactions.forEach(t=>{let amt=Number(t.amount||0);if(t.type==="Income"){let a=t.account||t.payment||"Cash";if(isCreditAccount(a))balances[a]-=amt;else balances[a]+=amt;}else if(t.type==="Expense"){let a=t.account||t.payment||"Cash";if(isCreditAccount(a))balances[a]+=amt;else balances[a]-=amt;}else if(t.type==="Transfer"){let from=t.fromAccount||"Cash",to=t.toAccount||"Bank Account";if(isCreditAccount(from))balances[from]+=amt;else balances[from]-=amt;if(isCreditAccount(to))balances[to]-=amt;else balances[to]+=amt;}});
+ const el=$("accountBalanceRows");if(el)el.innerHTML=`<div class="tablewrap"><table><thead><tr><th>Account</th><th>Opening balance</th><th>Calculated balance</th><th>Type</th></tr></thead><tbody>${ledgerAccounts.map(a=>`<tr><td><strong>${a}</strong></td><td>${money(openingBalances[a]||0)}</td><td class="amount ${isCreditAccount(a)?'expense':''}">${money(balances[a])}</td><td>${isCreditAccount(a)?'Outstanding / liability':'Available balance'}</td></tr>`).join("")}</tbody></table></div>`;
+ 
+}
+function renderSmartAlerts(){
+ const el=$("alertRows");if(!el)return;const ym=month(),spent={};transactions.filter(t=>t.type==="Expense"&&t.date.startsWith(ym)).forEach(t=>spent[t.category]=(spent[t.category]||0)+Number(t.amount||0));
+ let alerts=[];Object.entries(budgets).forEach(([cat,b])=>{let n=spent[cat]||0,pct=b? n/b*100:0;if(pct>=100)alerts.push({level:"danger",text:`${cat}: over budget by ${money(n-b)} (${Math.round(pct)}% used)`});else if(pct>=80)alerts.push({level:"warn",text:`${cat}: ${Math.round(pct)}% of budget used (${money(b-n)} remaining)`});});
+ transactions.filter(t=>t.type==="Expense"&&t.date.startsWith(ym)&&Number(t.amount)>=10000).forEach(t=>alerts.push({level:"warn",text:`Large expense: ${t.description||t.category} · ${money(t.amount)} · ${t.date}`}));
+ el.innerHTML=alerts.length?alerts.map(a=>`<div class="card" style="margin:8px 0;border-left:4px solid ${a.level==="danger"?"#dc2626":"#d97706"}"><strong>${a.level==="danger"?"Over budget":"Attention"}</strong><p>${escapeHtml(a.text)}</p></div>`).join(""):`<p class="income">No budget or large-spending alerts for this month.</p>`;
+}
+
+let forecastChart;
+function renderFinancialForecast(){
+ const horizonEl=$("forecastHorizon"),rowsEl=$("forecastRows"),metricsEl=$("forecastMetrics"),summaryEl=$("forecastSummary");
+ if(!horizonEl||!rowsEl||!metricsEl||!summaryEl||!month())return;
+ const horizon=Math.max(1,Math.min(12,Number(horizonEl.value)||6));
+ const [baseYear,baseMonth]=month().split('-').map(Number);
+ const selectedEnd=new Date(baseYear,baseMonth,0);
+ const monthKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+ const moneyClass=n=>n<0?'forecast-negative':'forecast-positive';
+ const safeAmount=v=>Number.isFinite(Number(v))?Number(v):0;
+ const histMonths=[];
+ for(let back=3;back>=1;back--){histMonths.push(monthKey(new Date(baseYear,baseMonth-1-back,1)));}
+ const monthHistory=histMonths.map(key=>{
+  const list=transactions.filter(t=>String(t.date||'').startsWith(key));
+  const income=list.filter(t=>t.type==='Income').reduce((a,t)=>a+safeAmount(t.amount),0);
+  const variable=list.filter(t=>t.type==='Expense'&&!t.recurringId&&!t.emiId).reduce((a,t)=>a+safeAmount(t.amount),0);
+  const hasActivity=list.some(t=>t.type==='Income'||t.type==='Expense');
+  return {key,income,variable,hasActivity};
+ });
+ const observed=monthHistory.filter(x=>x.hasActivity),sampleCount=observed.length;
+ const avgIncome=sampleCount?observed.reduce((a,x)=>a+x.income,0)/sampleCount:0;
+ const avgVariable=sampleCount?observed.reduce((a,x)=>a+x.variable,0)/sampleCount:0;
+
+ // Opening balances plus all actual/planned transactions through the selected month-end.
+ const balances={};
+ accountDefs.forEach(a=>balances[a.name]=safeAmount(openingBalances[a.name]));
+ const isCredit=name=>isCreditAccount(name);
+ transactions.filter(t=>String(t.date||'')<=`${monthKey(selectedEnd)}-${String(selectedEnd.getDate()).padStart(2,'0')}`).forEach(t=>{
+  const amount=safeAmount(t.amount);
+  if(t.type==='Income'){
+   const account=t.account||t.payment||'Cash';if(!(account in balances))balances[account]=0;
+   balances[account]+=isCredit(account)?-amount:amount;
+  }else if(t.type==='Expense'){
+   const account=t.account||t.payment||'Cash';if(!(account in balances))balances[account]=0;
+   balances[account]+=isCredit(account)?amount:-amount;
+  }else if(t.type==='Transfer'){
+   const from=t.fromAccount||'Cash',to=t.toAccount||'Bank Account';
+   if(!(from in balances))balances[from]=0;if(!(to in balances))balances[to]=0;
+   balances[from]+=isCredit(from)?amount:-amount;balances[to]+=isCredit(to)?-amount:amount;
+  }
+ });
+ const startingBalance=Object.entries(balances).reduce((sum,[name,value])=>sum+(isCredit(name)?-value:value),0);
+ const activeRecurring=recurring.filter(r=>!r.paused);
+ const activeEmis=emis.filter(e=>!e.paused);
+ const recurringMonthly=activeRecurring.reduce((sum,r)=>sum+(safeAmount(r.amount)/(r.frequency==='yearly'?12:1)),0);
+ const emiMonthly=activeEmis.reduce((sum,e)=>sum+safeAmount(e.amount),0);
+ const activeRecurringIds=new Set(activeRecurring.map(r=>r.id).filter(id=>id!==undefined&&id!==null));
+ const activeEmiIds=new Set(activeEmis.map(e=>e.id).filter(id=>id!==undefined&&id!==null));
+
+ const projections=[];let closing=startingBalance;
+ for(let step=1;step<=horizon;step++){
+  const d=new Date(baseYear,baseMonth-1+step,1),key=monthKey(d),monthEnd=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+  let recurringCost=0,emiCost=0;
+  activeRecurring.forEach(r=>{
+   const existing=transactions.find(t=>t.recurringId===r.id&&String(t.date||'').startsWith(key));
+   // Yearly commitments are spread over 12 months as a planning average.
+   recurringCost+=r.frequency==='yearly'?safeAmount(r.amount)/12:(existing?safeAmount(existing.amount):safeAmount(r.amount));
+  });
+  activeEmis.forEach(e=>{
+   const day=Math.min(Math.max(1,Number(e.day)||1),monthEnd),dueDate=`${key}-${String(day).padStart(2,'0')}`;
+   const offset=step;
+   if(e.end&&dueDate>e.end)return;
+   if(Number(e.tenure||0)>0&&Number(e.paidCount||0)+offset>Number(e.tenure))return;
+   const existing=transactions.find(t=>t.emiId===e.id&&String(t.date||'').startsWith(key));
+   emiCost+=existing?safeAmount(existing.amount):safeAmount(e.amount);
+  });
+  const oneOff=transactions.filter(t=>String(t.date||'').startsWith(key)&&!activeRecurringIds.has(t.recurringId)&&!activeEmiIds.has(t.emiId));
+  const extraIncome=oneOff.filter(t=>t.type==='Income').reduce((a,t)=>a+safeAmount(t.amount),0);
+  const extraExpense=oneOff.filter(t=>t.type==='Expense').reduce((a,t)=>a+safeAmount(t.amount),0);
+  const income=avgIncome+extraIncome;
+  const expenses=avgVariable+recurringCost+emiCost+extraExpense;
+  const net=income-expenses;closing+=net;
+  projections.push({key,label:d.toLocaleDateString('en-IN',{month:'short',year:'numeric'}),income,expenses,net,closing,recurringCost,emiCost,extraIncome,extraExpense});
+ }
+ const finalBalance=projections.length?projections[projections.length-1].closing:startingBalance;
+ const baselineMonthlyNet=avgIncome-avgVariable-recurringMonthly-emiMonthly;
+ const goalsWithDates=goals.filter(g=>!g.paused&&safeAmount(g.target)>safeAmount(g.saved)&&g.date);
+ const monthlyGoalNeed=goalsWithDates.reduce((sum,g)=>{
+  const [gy,gm]=String(g.date).split('-').map(Number);if(!gy||!gm)return sum;
+  const monthsLeft=Math.max(1,(gy-baseYear)*12+(gm-baseMonth));
+  return sum+(safeAmount(g.target)-safeAmount(g.saved))/monthsLeft;
+ },0);
+ const afterGoals=baselineMonthlyNet-monthlyGoalNeed;
+ const monthLabel=projections.length?projections[projections.length-1].label:'';
+ metricsEl.innerHTML=[
+  ['Starting balance',money(startingBalance),`Estimated at ${month()} month-end`],
+  ['Average monthly income',money(avgIncome),`${sampleCount} of 3 prior months with activity`],
+  ['Average monthly outflow',money(avgVariable+recurringMonthly+emiMonthly),`Variable costs + bills + EMIs`],
+  [`Balance after ${horizon} months`,money(finalBalance),`Projected through ${monthLabel}`]
+ ].map(([label,value,detail],i)=>`<div class="card metric"><small>${label}</small><h2 class="${i===3?moneyClass(finalBalance):''}">${value}</h2><p>${detail}</p></div>`).join('');
+ let warning=sampleCount? (afterGoals<0?'Projected monthly cash flow may not cover the estimated savings needed for your dated goals.':finalBalance<0?'The estimated balance becomes negative within the forecast period.':'The current assumptions show a positive projected position.') : 'Add income and expense records for previous months to establish a more useful forecast baseline.';
+ const commitments=recurringMonthly+emiMonthly;
+ summaryEl.innerHTML=`<p><strong>Estimated monthly surplus before goal savings:</strong> <span class="${moneyClass(baselineMonthlyNet)}">${money(baselineMonthlyNet)}</span></p><p><strong>Recurring bills (monthly equivalent):</strong> ${money(recurringMonthly)}</p><p><strong>Active EMI commitments:</strong> ${money(emiMonthly)}</p><p><strong>Monthly amount needed for dated savings goals:</strong> ${money(monthlyGoalNeed)}</p><p><strong>Surplus after goal targets:</strong> <span class="${moneyClass(afterGoals)}">${money(afterGoals)}</span></p><div class="forecast-callout ${afterGoals<0||finalBalance<0||!sampleCount?'warn':''}">${escapeHtml(warning)}</div><p class="forecast-muted">Fixed monthly commitments total ${money(commitments)}. Yearly recurring bills are divided by 12. Goal requirements are shown separately and are not deducted from the closing-balance projection.</p>`;
+ rowsEl.innerHTML=projections.map(p=>`<tr><td><strong>${p.label}</strong></td><td class="amount income">${money(p.income)}</td><td class="amount expense">${money(p.expenses)}</td><td class="amount ${moneyClass(p.net)}">${money(p.net)}</td><td class="amount ${moneyClass(p.closing)}">${money(p.closing)}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No forecast available.</td></tr>';
+ const chartEl=$("forecastChart");
+ if(chartEl){if(forecastChart)forecastChart.destroy();forecastChart=new Chart(chartEl,{type:'line',data:{labels:projections.map(p=>p.label),datasets:[{label:'Estimated closing balance ₹',data:projections.map(p=>Math.round(p.closing*100)/100),tension:.25,fill:false}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:true,position:'bottom'}},scales:{y:{ticks:{callback:value=>'₹'+Number(value).toLocaleString('en-IN')}}}}});}
+ const methodology=$("forecastMethod");if(methodology)methodology.textContent=`Forecast basis: average income and non-template expenses from ${histMonths[0]} to ${histMonths[2]} (${sampleCount} month(s) with activity); active recurring bills; active EMIs (respecting end date and installment count); and dated future transactions. The forecast starts from calculated account balances at the end of ${month()}. It assumes no salary increases, inflation, interest changes or unrecorded spending. Yearly bills are averaged over 12 months. Savings-goal requirements are shown separately and are not deducted from projected balances.`;
+}
+
+function render(){
+ renderLedger();renderSmartAlerts();
+ let {inc,exp,bud}=sums();$("income").textContent=money(inc);$("expense").textContent=money(exp);$("balance").textContent=money(inc-exp);$("budgetRemaining").textContent=money(bud-exp);
+ let by={};monthlyTx().filter(t=>t.type==="Expense").forEach(t=>by[t.category]=(by[t.category]||0)+t.amount);
+ if(pieChart)pieChart.destroy();pieChart=new Chart($("pie"),{type:"doughnut",data:{labels:Object.keys(by),datasets:[{data:Object.values(by)}]},options:{responsive:true,plugins:{legend:{position:"bottom"}}}});
+ let months=[];let trenddata=[];for(let i=5;i>=0;i--){let d=new Date(month()+"-01");d.setMonth(d.getMonth()-i);let m=d.toISOString().slice(0,7);months.push(m);trenddata.push(transactions.filter(t=>t.date.startsWith(m)&&t.type==="Expense").reduce((a,x)=>a+x.amount,0))}
+ if(trendChart)trendChart.destroy();trendChart=new Chart($("trend"),{type:"bar",data:{labels:months,datasets:[{label:"Expenses ₹",data:trenddata}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+ let txFiltered=monthlyTx().filter(t=>{let q=$("txSearch").value.trim().toLowerCase(),typ=$("txFilterType").value,mem=$("txFilterMember").value,pay=$("txFilterPayment").value;return (!q||`${t.description} ${t.category} ${t.member||"Common"}`.toLowerCase().includes(q))&&(!typ||t.type===typ)&&(!mem||(mem==="Common"?!t.member:t.member===mem))&&(!pay||(t.payment===pay||t.account===pay||t.fromAccount===pay||t.toAccount===pay))}).sort((a,b)=>b.date.localeCompare(a.date));
+ $("rows").innerHTML=txFiltered.map(t=>`<tr><td>${t.date}</td><td>${escapeHtml(t.description)}</td><td><span class="tag">${escapeHtml(t.category||"Transfer")}</span></td><td>${escapeHtml(t.member||"Common / Family")}</td><td>${escapeHtml(t.type==="Transfer"?`${t.fromAccount||"?"} → ${t.toAccount||"?"}`:(t.account||t.payment||"—"))}</td><td class="amount ${t.type==="Income"?"income":t.type==="Expense"?"expense":""}">${t.type==="Income"?"+":t.type==="Expense"?"−":"↔"}${money(t.amount)}</td><td><button class="secondary admin-only" onclick="editTx('${t.id}')">Edit</button> <button class="danger admin-only" onclick="del('${t.id}')">Delete</button></td></tr>`).join("")||`<tr><td colspan="7" class="empty">No matching transactions</td></tr>`;
+ $("budgetRows").innerHTML=Object.entries(budgets).map(([c,b])=>{let s=by[c]||0;return `<tr><td>${escapeHtml(c)}</td><td>${money(b)}</td><td>${money(s)}</td><td class="${b-s<0?'expense':''}">${money(b-s)}</td></tr>`}).join("")||`<tr><td colspan="4" class="empty">Set a budget to get started</td></tr>`;
+ let memberSpend={};members.forEach(m=>memberSpend[m]=monthlyTx().filter(t=>t.type==="Expense"&&(t.member||"")===m).reduce((a,t)=>a+t.amount,0));let commonSpend=monthlyTx().filter(t=>t.type==="Expense"&&!t.member).reduce((a,t)=>a+t.amount,0);
+ $("memberSummary").innerHTML=members.map(m=>`<p><strong>${m}</strong>: ${money(memberSpend[m])} <button class="secondary" onclick="shareMember(\'${m}\')">Share</button></p>`).join("")+`<p><strong>Common / Family</strong>: ${money(commonSpend)} <button class="secondary" onclick="shareMember(\'Common\')">Share</button></p>`;
+ let today=new Date();today.setHours(0,0,0,0);let horizon=new Date(today);horizon.setDate(horizon.getDate()+30);let upcoming=transactions.filter(t=>t.type==="Expense"&&new Date(t.date+"T00:00:00")>=today&&new Date(t.date+"T00:00:00")<=horizon).sort((a,b)=>a.date.localeCompare(b.date));
+ $("upcomingRows").innerHTML=upcoming.map(t=>`<p><strong>${t.date}</strong> · ${escapeHtml(t.description)} · ${money(t.amount)} · ${escapeHtml(t.member||"Common / Family")} <button class="secondary" onclick="shareReminder(\'${t.id}\')">WhatsApp</button></p>`).join("")||"<p>No upcoming expenses in the next 30 days.</p>";
+
+ renderCalendar();
+ renderDashboardOverview(inc,exp,bud,by,memberSpend,commonSpend,upcoming);
+ renderFinancialInsights();
+ renderFinancialForecast();
+ renderMonthlyReport();
+ let emiTotal=emis.filter(x=>!x.paused).reduce((a,x)=>a+Number(x.amount||0),0),emiOutstandingTotal=emis.reduce((a,x)=>a+Number(x.outstanding||0),0),emiActive=emis.filter(x=>!x.paused).length;
+ $("emiSummary").innerHTML=`<div class="card metric"><small>Active monthly EMIs</small><h2>${money(emiTotal)}</h2></div><div class="card metric"><small>Active loans</small><h2>${emiActive}</h2></div><div class="card metric"><small>Tracked outstanding</small><h2>${money(emiOutstandingTotal)}</h2></div>`;
+ $("emiRows").innerHTML=emis.map((x,i)=>{let paid=Number(x.paidCount||0),tenure=Number(x.tenure||0),remaining=tenure?Math.max(0,tenure-paid):null,pct=tenure?Math.min(100,Math.round(paid/tenure*100)):null;let ym=month(),date=`${ym}-${String(Math.min(Number(x.day||1),new Date(Number(ym.slice(0,4)),Number(ym.slice(5,7)),0).getDate())).padStart(2,"0")}`,isPaid=transactions.some(t=>t.emiId===x.id&&t.date===date);return `<div style="margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:12px;opacity:${x.paused?.65:1}"><strong>${escapeHtml(x.name)}</strong> <span class="tag">${x.paused?'Paused':isPaid?'Paid this month':'Pending this month'}</span><div class="mini">${escapeHtml(x.lender||'Lender not specified')} · ${money(x.amount)} EMI · due day ${x.day}${x.end?` · final date ${escapeHtml(x.end)}`:''}</div><div class="mini">Original: ${money(x.principal||0)} · Outstanding: ${money(x.outstanding||0)} · Rate: ${x.rate?escapeHtml(String(x.rate))+'%':'—'}</div><div class="mini">Installments: ${paid}${tenure?` / ${tenure} · ${remaining} remaining`:''}</div>${pct!==null?`<div class="ov-track"><div class="ov-fill" style="width:${pct}%"></div></div><div class="ov-small">${pct}% installments completed</div>`:''}<div class="toolbar"><button class="secondary" onclick="toggleEmi(${i})">${x.paused?'Resume':'Pause'}</button><button class="secondary" onclick="editEmi(${i})">Edit</button><button class="secondary" onclick="updateEmiProgress(${i})">Update progress</button><button class="danger" onclick="removeEmi(${i})">Remove</button></div></div>`}).join("")||"<p>No loan records yet.</p>";
+ $("goalRows").innerHTML=goals.map((g,i)=>{let pct=Math.min(100,Math.round((Number(g.saved||0)/Number(g.target))*100)),hist=g.contributions||[],avg=hist.length?hist.reduce((a,c)=>a+Number(c.amount||0),0)/Math.max(1,((new Date()-new Date(hist[0].date||Date.now()))/(30.44*86400000))):0,forecast=avg>0&&Number(g.target)>Number(g.saved||0)?new Date(Date.now()+((Number(g.target)-Number(g.saved||0))/avg)*30.44*86400000).toLocaleDateString():null;return `<div style="margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:12px;opacity:${g.paused?.65:1}"><strong>${escapeHtml(g.name)}</strong> <span class="tag">${g.paused?'Paused':pct>=100?'Completed':'Active'}</span><div>${money(g.saved||0)} / ${money(g.target)} · ${pct}%${g.date?` · Target ${escapeHtml(g.date)}`:""}</div><div style="background:#e5e7eb;border-radius:8px;height:9px;margin:7px 0"><div style="width:${pct}%;background:#059669;height:9px;border-radius:8px"></div></div><div class="mini">Remaining: ${money(Math.max(0,Number(g.target)-Number(g.saved||0)))}${forecast&&!g.paused?` · Estimated completion: ${forecast}`:''}</div><div class="toolbar"><button class="secondary" onclick="addGoalContribution(${i})">Add contribution</button><button class="secondary" onclick="toggleGoal(${i})">${g.paused?'Resume':'Pause'}</button><button class="secondary" onclick="goalHistory(${i})">Contribution history (${hist.length})</button><button class="danger" onclick="removeGoal(${i})">Remove</button></div></div>`}).join("")||"<p>No savings goals created.</p>";
+ const ym=month(), due=recurring.filter(r=>!r.paused&&(!r.frequency||r.frequency==="monthly")).reduce((a,r)=>a+Number(r.amount||0),0),paused=recurring.filter(r=>r.paused).length;
+ $("recurringSummary").innerHTML=`<div class="card metric"><small>Active monthly bills</small><h2>${money(due)}</h2></div><div class="card metric"><small>Bill templates</small><h2>${recurring.length}</h2></div><div class="card metric"><small>Paused</small><h2>${paused}</h2></div>`;
+ $("recurringRows").innerHTML=recurring.map((r,i)=>{let date=`${ym}-${String(r.day||1).padStart(2,"0")}`,paid=transactions.some(t=>t.recurringId===r.id&&t.date===date),status=r.paused?"Paused":paid?"Paid for selected month":"Pending for selected month";return `<div class="toolbar" style="border-bottom:1px solid var(--border);padding:10px 0"><div><strong>${escapeHtml(r.description)}</strong><br><small>${escapeHtml(r.category)} · ${money(r.amount)} · day ${r.day} · ${escapeHtml(r.member||"Common / Family")} · ${escapeHtml(r.frequency||"monthly")}</small><br><span class="tag">${status}</span></div><button class="secondary" onclick="toggleRecurring(${i})">${r.paused?"Resume":"Pause"}</button>${!r.paused&&!paid?`<button onclick="payRecurring(${i})">Mark Paid</button>`:""}<button class="secondary" onclick="editRecurring(${i})">Edit</button><button class="danger" onclick="removeRecurring(${i})">Remove</button></div>`}).join("")||"<p>No recurring bills configured.</p>";
+}
+
+
+
+function renderMonthlyReport(){
+ const ym=month(),list=transactions.filter(t=>t.date.startsWith(ym)),income=list.filter(t=>t.type==='Income').reduce((a,t)=>a+Number(t.amount||0),0),expenses=list.filter(t=>t.type==='Expense').reduce((a,t)=>a+Number(t.amount||0),0),net=income-expenses;
+ const cat={},mem={};list.filter(t=>t.type==='Expense').forEach(t=>{let c=t.category||'Uncategorized',m=t.member||'Common / Family';cat[c]=(cat[c]||0)+Number(t.amount||0);mem[m]=(mem[m]||0)+Number(t.amount||0)});
+ const budgetRows=Object.entries(budgets).map(([c,b])=>[c,Number(b||0),cat[c]||0,Number(b||0)-(cat[c]||0)]);
+ const goalsRows=goals.map(g=>[g.name,Number(g.target||0),Number(g.saved||0),Math.max(0,Number(g.target||0)-Number(g.saved||0))]);
+ const emiRows=emis.map(e=>[e.name,Number(e.amount||0),Number(e.outstanding||0),e.paused?'Paused':'Active']);
+ const recur=recurring.map(r=>{let date=`${ym}-${String(r.day||1).padStart(2,'0')}`,paid=transactions.some(t=>t.recurringId===r.id&&t.date===date);return [r.description,Number(r.amount||0),r.paused?'Paused':paid?'Paid':'Pending']});
+ const accounts=accountDefs.map(a=>{let name=a.name,bal=Number(openingBalances[name]||0);transactions.forEach(t=>{let v=Number(t.amount||0);if(t.type==='Income'&&(t.account||t.payment||'Cash')===name)bal+=isCreditAccount(name)?-v:v;else if(t.type==='Expense'&&(t.account||t.payment||'Cash')===name)bal+=isCreditAccount(name)?v:-v;else if(t.type==='Transfer'){if((t.fromAccount||'Cash')===name)bal+=isCreditAccount(name)?v:-v;if((t.toAccount||'Bank Account')===name)bal+=isCreditAccount(name)?-v:v;}});return [name,bal]});
+ const table=(title,headers,rows)=>`<h3>${title}</h3><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr>${row.map(v=>`<td>${escapeHtml(String(v))}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${headers.length}">No data</td></tr>`}</tbody></table>`;
+ const el=$('reportContent');if(!el)return;el.innerHTML=`<h3>ADAA Family Finance · ${ym}</h3><p><strong>Income:</strong> ${money(income)} &nbsp; <strong>Expenses:</strong> ${money(expenses)} &nbsp; <strong>Net cash flow:</strong> ${money(net)}</p>${table('Expense by Category',['Category','Amount'],Object.entries(cat).sort((a,b)=>b[1]-a[1]))}${table('Member-wise Spending',['Family member','Amount'],Object.entries(mem).sort((a,b)=>b[1]-a[1]))}${table('Budget vs Actual',['Category','Budget','Spent','Remaining'],budgetRows)}${table('Savings Goals',['Goal','Target','Saved','Remaining'],goalsRows)}${table('EMI Summary',['Loan','Monthly EMI','Tracked Outstanding','Status'],emiRows)}${table('Recurring Bills',['Bill','Amount','Status'],recur)}${table('Account Balance Summary',['Account','Balance / Liability'],accounts)}`;
+}
+function exportReportCSV(){if(activeRole!=='admin'){alert('Admin access required.');return;}const ym=month(),list=transactions.filter(t=>t.date.startsWith(ym)),lines=[['ADAA Monthly Report',ym],['Date','Type','Category','Member','Description','Account','Amount']];list.forEach(t=>lines.push([t.date,t.type,t.category,t.member||'Common / Family',t.description,t.account||t.payment||'',t.amount]));let csv=lines.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');download(csv,`ADAA-Report-${ym}.csv`,'text/csv');}
+$('printReport').onclick=()=>window.print();$('reportCSV').onclick=exportReportCSV;
+
+function renderFinancialInsights(){
+ const ym=month();if(!ym)return;const [yy,mm]=ym.split('-').map(Number);const prevDate=new Date(yy,mm-2,1),prevMonth=prevDate.toISOString().slice(0,7);
+ const cur=transactions.filter(t=>t.date.startsWith(ym)),prev=transactions.filter(t=>t.date.startsWith(prevMonth));
+ const income=cur.filter(t=>t.type==='Income').reduce((a,t)=>a+Number(t.amount||0),0),expense=cur.filter(t=>t.type==='Expense').reduce((a,t)=>a+Number(t.amount||0),0),net=income-expense,savingsRate=income>0?Math.round(net/income*100):0;
+ const prevExp=prev.filter(t=>t.type==='Expense').reduce((a,t)=>a+Number(t.amount||0),0),prevInc=prev.filter(t=>t.type==='Income').reduce((a,t)=>a+Number(t.amount||0),0);
+ const cats={};cur.filter(t=>t.type==='Expense').forEach(t=>cats[t.category||'Uncategorized']=(cats[t.category||'Uncategorized']||0)+Number(t.amount||0));const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);const top=sorted[0];
+ const budgetTotal=Object.values(budgets).reduce((a,b)=>a+Number(b||0),0),budgetPct=budgetTotal?Math.round(expense/budgetTotal*100):null;
+ let score=50;if(income>0){score+=net>=0?20:0;score+=savingsRate>=20?15:savingsRate>=10?8:0;}if(budgetTotal){score+=expense<=budgetTotal?15:0;}score=Math.max(0,Math.min(100,score));let health=score>=80?'Strong':score>=60?'Fair':'Needs attention';
+ const metricEl=$('insightMetrics');if(metricEl)metricEl.innerHTML=[['Savings rate',income?`${savingsRate}%`:'—',income?`${money(net)} net this month`:'Record income to calculate'],['Top category',top?top[0]:'—',top?money(top[1])+' spent':'No expenses recorded'],['Budget usage',budgetPct===null?'—':`${budgetPct}%`,budgetTotal?`${money(expense)} of ${money(budgetTotal)}`:'Set budgets to track'],['Financial health',`${score}/100`,health]].map(([a,b,c])=>`<div class="card metric"><small>${a}</small><h2>${escapeHtml(b)}</h2><p>${escapeHtml(c)}</p></div>`).join('');
+ const catEl=$('insightCategories');if(catEl)catEl.innerHTML=sorted.length?sorted.slice(0,8).map(([c,v])=>`<div class="ov-row"><div class="ov-row-head"><span>${escapeHtml(c)}</span><strong>${money(v)}</strong></div><div class="ov-track"><div class="ov-fill" style="width:${Math.round(v/expense*100)}%"></div></div><div class="ov-small">${expense?Math.round(v/expense*100):0}% of monthly spending</div></div>`).join(''):'<p>No category spending recorded this month.</p>';
+ const cmp=$('insightComparison');if(cmp){let delta=prevExp?Math.round((expense-prevExp)/prevExp*100):null;cmp.innerHTML=`<p><strong>${ym}</strong> expenses: ${money(expense)}</p><p><strong>${prevMonth}</strong> expenses: ${money(prevExp)}</p><div class="${delta!==null&&delta>0?'ov-alert':'ov-good'}">${delta===null?'No previous-month expense baseline':delta>0?`${delta}% higher spending than last month`:`${Math.abs(delta)}% lower spending than last month`}</div><p class="note">Previous month income: ${money(prevInc)}</p>`;}
+}
+
+function renderDashboardOverview(inc,exp,bud,by,memberSpend,commonSpend,upcoming){
+ const memEl=$("overviewMembers");if(memEl){let vals=members.map(m=>[m,memberSpend[m]||0]).concat([["Common / Family",commonSpend||0]]),max=Math.max(1,...vals.map(x=>x[1]));memEl.innerHTML=vals.map(([name,val])=>`<div class="ov-row"><div class="ov-row-head"><span>${escapeHtml(name)}</span><strong>${money(val)}</strong></div><div class="ov-track"><div class="ov-fill" style="width:${Math.round(val/max*100)}%"></div></div></div>`).join("");}
+ const bEl=$("overviewBudget");if(bEl){let budgetTotal=Object.values(budgets).reduce((a,x)=>a+Number(x||0),0),pct=budgetTotal>0?Math.min(100,Math.round(exp/budgetTotal*100)):0,left=budgetTotal-exp;bEl.innerHTML=budgetTotal?`<div class="ov-row-head"><span>Budget used</span><strong>${pct}%</strong></div><div class="ov-track"><div class="ov-fill" style="width:${pct}%;${pct>=100?'background:#dc2626':''}"></div></div><p>${money(exp)} spent of ${money(budgetTotal)}</p><div class="${left>=0?'ov-good':'ov-alert'}">${left>=0?money(left)+" remaining":"Over budget by "+money(Math.abs(left))}</div>`:`<div class="ov-alert">No monthly budget configured yet.</div>`;}
+ const uEl=$("overviewUpcoming");if(uEl){let short=upcoming.slice(0,4);uEl.innerHTML=short.length?short.map(t=>`<div class="ov-row-head"><span>${escapeHtml(t.date.slice(5))} · ${escapeHtml(t.description)}</span><strong>${money(t.amount)}</strong></div>`).join("")+`<p class="ov-small">${upcoming.length} upcoming item(s) within 30 days</p>`:`<div class="ov-good">No upcoming payments in the next 30 days.</div>`;}
+ const gEl=$("overviewGoals");if(gEl){gEl.innerHTML=goals.length?goals.slice(0,3).map(g=>{let pct=Math.min(100,Math.round(Number(g.saved||0)/Number(g.target||1)*100));return `<div class="ov-row"><div class="ov-row-head"><span>${escapeHtml(g.name)}</span><strong>${pct}%</strong></div><div class="ov-track"><div class="ov-fill" style="width:${pct}%"></div></div><div class="ov-small">${money(g.saved||0)} of ${money(g.target)}</div></div>`}).join(""):`<div class="ov-small">No savings goals yet. Add a goal to track progress here.</div>`;}
+}
+$("quickAdd").addEventListener("click",()=>$("transactionEntry").scrollIntoView({behavior:"smooth",block:"start"}));
+
+function applyEmiTransactions(){
+ if(activeRole!=="admin"||!centralDataReady)return;
+ let ym=month(),[yy,mm]=ym.split("-").map(Number),monthEnd=new Date(yy,mm,0).getDate();
+ emis.forEach(e=>{if(e.paused)return;let day=Math.min(Number(e.day),monthEnd),date=`${ym}-${String(day).padStart(2,"0")}`;
+ if(e.end&&date>e.end)return;
+ if(!transactions.some(t=>t.emiId===e.id&&t.date===date))transactions.push({id:crypto.randomUUID(),emiId:e.id,date,type:"Expense",category:"Other",member:"",description:`EMI: ${e.name}`,payment:"Bank",amount:Number(e.amount)});
+ });save();
+}
+
+function renderCalendar(){let el=$("paymentCalendar");if(!el)return;let [yy,mm]=month().split("-").map(Number);let first=new Date(yy,mm-1,1),last=new Date(yy,mm,0),offset=first.getDay();let today=new Date();today.setHours(0,0,0,0);let html=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>`<div class="cal-head">${d}</div>`).join("");for(let i=0;i<offset;i++)html+=`<div class="cal-day"></div>`;for(let day=1;day<=last.getDate();day++){let date=`${yy}-${String(mm).padStart(2,"0")}-${String(day).padStart(2,"0")}`,d=new Date(date+"T00:00:00"),items=transactions.filter(t=>t.date===date).map(t=>({label:`${t.type==='Income'?'↑':'↓'} ${t.description} ${money(t.amount)}`,cls:"cal-event"}));goals.forEach(g=>{if(g.date===date)items.push({label:`Goal: ${g.name}`,cls:"cal-event cal-goal"})});html+=`<div class="cal-day ${d.getTime()===today.getTime()?"today":""}"><div class="cal-num">${day}</div>${items.slice(0,3).map(x=>`<div class="${x.cls}">${escapeHtml(x.label)}</div>`).join("")}${items.length>3?`<div class="mini">+${items.length-3} more</div>`:""}</div>`;}el.innerHTML=html;}
+window.removeEmi=i=>{if(activeRole!=="admin")return;emis.splice(i,1);save();render()};window.removeGoal=i=>{if(activeRole!=="admin")return;if(!confirm('Remove this savings goal?'))return;goals.splice(i,1);save();render()};window.toggleGoal=i=>{if(activeRole!=="admin")return;goals[i].paused=!goals[i].paused;save();render()};window.goalHistory=i=>{let g=goals[i],h=g.contributions||[];alert(`${g.name}\n\n`+(h.length?h.map(c=>`${c.date}: ${money(c.amount)}${c.note?' · '+c.note:''}`).join('\n'):'No contribution history yet.'))};window.addGoalContribution=i=>{if(activeRole!=="admin")return;let n=prompt("Contribution amount (₹):");if(n===null)return;let amount=Number(n);if(!Number.isFinite(amount)||amount<=0){alert("Enter a valid amount");return;}let note=prompt('Contribution note (optional):')||'';goals[i].saved=Number(goals[i].saved||0)+amount;goals[i].contributions=goals[i].contributions||[];goals[i].contributions.push({date:new Date().toISOString().slice(0,10),amount,note});save();render()};
+$("emiForm").addEventListener("submit",e=>{e.preventDefault();if(activeRole!=="admin")return;emis.push({id:crypto.randomUUID(),name:$("emiName").value.trim(),lender:$("emiLender").value.trim(),principal:Number($("emiPrincipal").value||0),outstanding:Number($("emiOutstanding").value||0),rate:Number($("emiRate").value||0),tenure:Number($("emiTenure").value||0),paidCount:Number($("emiPaidCount").value||0),amount:Number($("emiAmount").value),day:Number($("emiDay").value),end:$("emiEnd").value,paused:false});save();e.target.reset();render()});
+window.toggleEmi=i=>{if(activeRole!=="admin")return;emis[i].paused=!emis[i].paused;save();render()};
+window.editEmi=i=>{if(activeRole!=="admin")return;let x=emis[i],v=prompt("Edit monthly EMI amount (₹):",x.amount);if(v===null)return;let n=Number(v);if(!n||n<=0){alert("Enter a valid EMI amount.");return;}x.amount=n;let day=prompt("Due day (1-28):",x.day);if(day!==null){let d=Number(day);if(d<1||d>28||!Number.isInteger(d)){alert("Due day must be 1-28.");return;}x.day=d;}save();render()};
+window.updateEmiProgress=i=>{if(activeRole!=="admin")return;let x=emis[i],p=prompt("Installments paid so far:",x.paidCount||0);if(p===null)return;let n=Number(p);if(!Number.isInteger(n)||n<0){alert("Enter a valid installment count.");return;}x.paidCount=n;let o=prompt("Current outstanding balance (₹):",x.outstanding||0);if(o!==null){let val=Number(o);if(!Number.isFinite(val)||val<0){alert("Enter a valid outstanding balance.");return;}x.outstanding=val;}save();render()};
+$("goalForm").addEventListener("submit",e=>{e.preventDefault();if(activeRole!=="admin")return;goals.push({id:crypto.randomUUID(),name:$('goalName').value.trim(),target:Number($('goalTarget').value),saved:Number($('goalSaved').value||0),date:$('goalDate').value,paused:false,contributions:Number($('goalSaved').value||0)>0?[{date:new Date().toISOString().slice(0,10),amount:Number($('goalSaved').value||0),note:'Initial savings'}]:[]});save();e.target.reset();render()});
+
+
+function shareMonthlyReport(){let list=monthlyTx(),exp=list.filter(t=>t.type==="Expense"),inc=list.filter(t=>t.type==="Income"),totalExp=exp.reduce((a,t)=>a+Number(t.amount),0),totalInc=inc.reduce((a,t)=>a+Number(t.amount),0);let byCat={};exp.forEach(t=>byCat[t.category]=(byCat[t.category]||0)+Number(t.amount));let byMem={};members.forEach(m=>byMem[m]=exp.filter(t=>(t.member||"")===m).reduce((a,t)=>a+Number(t.amount),0));let common=exp.filter(t=>!t.member).reduce((a,t)=>a+Number(t.amount),0);let msg=`ADAA FAMILY MONTHLY REPORT — ${month()}\n\nIncome: ₹${totalInc}\nExpenses: ₹${totalExp}\nBalance: ₹${totalInc-totalExp}\n\nFamily member expenses:\n`+members.map(m=>`${m}: ₹${byMem[m]}`).join("\n")+`\nCommon/Family: ₹${common}\n\nCategory breakdown:\n`+Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,a])=>`${c}: ₹${a}`).join("\n");window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");}
+$('shareReport').onclick=shareMonthlyReport;
+
+window.shareMember=m=>{let list=monthlyTx().filter(t=>t.type==="Expense"&&(m==="Common"?!t.member:(t.member||"")===m));let total=list.reduce((a,t)=>a+t.amount,0);let msg=`ADAA expenses for ${m} — ${month()}\n`+list.map(t=>`${t.date}: ${t.description} (${t.category}) - ₹${t.amount}`).join("\n")+`\nTotal: ₹${total}`;window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");};
+window.shareReminder=id=>{let t=transactions.find(x=>x.id===id);if(!t)return;let msg=`ADAA expense reminder\n${t.date}: ${t.description} - ₹${t.amount}\nMember: ${t.member||"Common / Family"}\nCategory: ${t.category}`;window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");};
+$("shareFamily").onclick=()=>{let list=monthlyTx().filter(t=>t.type==="Expense");let msg=`ADAA family expense summary — ${month()}\n`+members.map(m=>{let a=list.filter(t=>(t.member||"")===m);return `${m}: ₹${a.reduce((s,t)=>s+t.amount,0)}`}).join("\n")+`\nCommon / Family: ₹${list.filter(t=>!t.member).reduce((s,t)=>s+t.amount,0)}\nTotal: ₹${list.reduce((a,t)=>a+t.amount,0)}`;window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");};
+function checkUpcomingReminders(){let now=new Date();now.setHours(0,0,0,0);let end=new Date(now);end.setDate(end.getDate()+7);let due=transactions.filter(t=>t.type==="Expense"&&new Date(t.date+"T00:00:00")>=now&&new Date(t.date+"T00:00:00")<=end);if(due.length){alert("Upcoming expenses in the next 7 days:\n"+due.map(t=>`${t.date} - ${t.description} - ₹${t.amount} (${t.member||"Common / Family"})`).join("\n"));}}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+window.del=id=>{if(activeRole!=="admin"){alert("Admin access required to delete.");return;}if(confirm("Delete this transaction?")){transactions=transactions.filter(t=>t.id!==id);save();render()}};
+// Faster transaction entry: dynamic submit label, transfer-only fields and amount shortcuts.
+function updateEntryType(){let typ=$("type").value,transfer=typ==="Transfer";$("transferFields").classList.toggle("hidden",!transfer);["category","member","description","payment","account"].forEach(id=>{let el=$(id);if(el)el.classList.toggle("hidden",transfer)});$("description").required=!transfer;$("entrySubmit").textContent=transfer?"Add Transfer":typ==="Income"?"Add Income":"Add Expense";}
+$("type").addEventListener("change",updateEntryType);updateEntryType();
+document.querySelectorAll(".entry-shortcuts [data-amount]").forEach(b=>b.addEventListener("click",()=>{$("amount").value=b.dataset.amount;$("amount").focus()}));
+function transactionDuplicate(candidate,ignoreId=null){return transactions.find(t=>t.id!==ignoreId&&t.date===candidate.date&&t.type===candidate.type&&Number(t.amount)===Number(candidate.amount)&&String(t.description||"").trim().toLowerCase()===String(candidate.description||"").trim().toLowerCase()&&(candidate.type==="Transfer"?(t.fromAccount||"")===(candidate.fromAccount||"")&&(t.toAccount||"")===(candidate.toAccount||""):String(t.category||"")===String(candidate.category||"")&&String(t.account||t.payment||"")===String(candidate.account||candidate.payment||"")&&String(t.member||"")===String(candidate.member||"")))}
+function validateTransaction(t){if(!t.date||!/^\d{4}-\d{2}-\d{2}$/.test(t.date)||Number.isNaN(new Date(t.date+"T00:00:00").getTime())){alert("Please select a valid transaction date.");return false;}if(!Number.isFinite(Number(t.amount))||Number(t.amount)<=0){alert("Amount must be greater than zero.");return false;}if(t.type!=="Transfer"&&!String(t.description||"").trim()){alert("Description is required.");return false;}if(t.type==="Transfer"&&(!t.fromAccount||!t.toAccount||t.fromAccount===t.toAccount)){alert("Choose two different accounts for a transfer.");return false;}if(t.date>new Date().toISOString().slice(0,10)&&!confirm("This transaction is dated in the future. Save it as a planned transaction?"))return false;return true;}
+$("entry").addEventListener("submit",e=>{e.preventDefault();let typ=$("type").value,candidate={id:crypto.randomUUID(),date:$("date").value,type:typ,category:typ==="Transfer"?"Transfer":$("category").value,member:typ==="Transfer"?"":$("member").value,description:typ==="Transfer"?"Transfer":$("description").value.trim(),payment:$("payment").value,account:typ==="Transfer"?"":$("account").value,fromAccount:typ==="Transfer"?$("transferFrom").value:"",toAccount:typ==="Transfer"?$("transferTo").value:"",amount:Number($("amount").value)};if(!validateTransaction(candidate))return;let dup=transactionDuplicate(candidate);if(dup&&!confirm(`Possible duplicate detected:\n${dup.date} · ${dup.description} · ₹${dup.amount}\nSave this transaction anyway?`))return;transactions.push(candidate);save();$("description").value="";$("amount").value="";render();if($("type").value!=="Transfer")$("description").focus()});
+
+$("accountManageForm").addEventListener("submit",e=>{e.preventDefault();if(activeRole!=="admin")return;let name=$("newAccountName").value.trim(),type=$("newAccountType").value;if(!name||ledgerAccounts.some(a=>a.toLowerCase()===name.toLowerCase())){alert("Account name is empty or already exists.");return;}accountDefs.push({name,type});openingBalances[name]=0;save();$("newAccountName").value="";render();});
+window.renameAccount=i=>{if(activeRole!=="admin")return;let old=accountDefs[i].name,n=prompt("New account name:",old);if(!n||!n.trim()||ledgerAccounts.some(a=>a.toLowerCase()===n.trim().toLowerCase()&&a!==old))return;n=n.trim();accountDefs[i].name=n;openingBalances[n]=openingBalances[old]||0;delete openingBalances[old];transactions.forEach(t=>{if(t.account===old)t.account=n;if(t.fromAccount===old)t.fromAccount=n;if(t.toAccount===old)t.toAccount=n;});save();render();};
+window.removeAccount=i=>{if(activeRole!=="admin")return;let name=accountDefs[i].name;if(accountDefs.length<=6){alert("Default accounts cannot be removed. You can rename them.");return;}if(transactions.some(t=>t.account===name||t.fromAccount===name||t.toAccount===name)){alert("This account has transaction history and cannot be removed.");return;}if(!confirm("Remove account "+name+"?"))return;accountDefs.splice(i,1);delete openingBalances[name];save();render();};
+
+$("openingBalanceForm").addEventListener("submit",e=>{e.preventDefault();if(activeRole!=="admin"){alert("Admin access required.");return;}openingBalances[$("openingAccount").value]=Number($("openingAmount").value);save();$("openingAmount").value="";render()});
+$("budgetForm").addEventListener("submit",e=>{e.preventDefault();if(activeRole!=="admin"){alert("Admin access required.");return;}budgets[$("budgetCat").value]=Number($("budgetAmt").value);save();$("budgetAmt").value="";render()});
+
+window.removeRecurring=i=>{if(activeRole!=="admin")return;if(!confirm("Remove this recurring bill template? Existing transactions remain."))return;recurring.splice(i,1);save();render()};
+window.toggleRecurring=i=>{if(activeRole!=="admin")return;recurring[i].paused=!recurring[i].paused;save();render()};
+window.editRecurring=i=>{if(activeRole!=="admin")return;let r=recurring[i],name=prompt("Bill name",r.description);if(name===null)return;let amount=prompt("Amount ₹",r.amount);if(amount===null||!Number(amount)||Number(amount)<=0)return;let day=prompt("Due day (1-28)",r.day);if(day===null||!Number(day)||Number(day)<1||Number(day)>28)return;r.description=name.trim()||r.description;r.amount=Number(amount);r.day=Number(day);save();render()};
+window.payRecurring=i=>{if(activeRole!=="admin")return;let r=recurring[i],date=`${month()}-${String(r.day||1).padStart(2,"0")}`;if(transactions.some(t=>t.recurringId===r.id&&t.date===date)){alert("This bill is already recorded as paid for the selected month.");return;}transactions.push({id:crypto.randomUUID(),recurringId:r.id,date,type:"Expense",category:r.category,member:r.member||"",description:r.description,payment:"Other",account:"Other",amount:Number(r.amount)});save();render();};
+$("recurringForm").addEventListener("submit",e=>{e.preventDefault();if(activeRole!=="admin")return;recurring.push({id:crypto.randomUUID(),description:$("recDescription").value.trim(),category:$("recCategory").value,amount:Number($("recAmount").value),member:$("recMember").value,day:Number($("recDay").value),frequency:$("recFrequency").value,paused:false});save();$("recDescription").value="";$("recAmount").value="";$("recDay").value="";render()});
+function applyRecurring(){if(activeRole!=="admin"||!centralDataReady)return;let ym=month();recurring.forEach(r=>{if(r.paused||r.frequency==="yearly")return;let date=`${ym}-${String(r.day).padStart(2,"0")}`;if(!transactions.some(t=>t.recurringId===r.id&&t.date===date)){transactions.push({id:crypto.randomUUID(),recurringId:r.id,date,type:"Expense",category:r.category,member:r.member,description:r.description,payment:"Other",account:"Other",amount:Number(r.amount)})}});save()}
+$("month").addEventListener("change",()=>{applyRecurring();applyEmiTransactions();render()});
+$("forecastHorizon").addEventListener("change",renderFinancialForecast);
+$("export").onclick=()=>{if(activeRole!=="admin")return;let list=monthlyTx(),csv="Date,Type,Category,Member,Description,Payment,Account,From,To,Amount\\n"+list.map(t=>[t.date,t.type,t.category,t.member||"Common / Family",'"'+t.description.replaceAll('"','""')+'"',t.payment,t.account||"",t.fromAccount||"",t.toAccount||"",t.amount].join(",")).join("\\n");download(csv,"expenses.csv","text/csv")};
+function makeBackup(){return {app:"ADAA Family Finance",backupVersion:3,createdAt:new Date().toISOString(),transactions,budgets,recurring,emis,goals,openingBalances,accountDefs,security:{adminPin,entryPin,idleMinutes}};}
+function downloadBackup(){if(activeRole!=="admin")return;download(JSON.stringify(makeBackup(),null,2),"ADAA-backup-"+new Date().toISOString().slice(0,10)+".json","application/json");try{localStorage.setItem("adaa_last_backup",new Date().toISOString());}catch{}if($("backupStatus"))$("backupStatus").textContent="Last backup downloaded: "+new Date().toLocaleString()+". Keep this file in a safe location.";}
+$("backup").onclick=downloadBackup;$("backupNow").onclick=downloadBackup;
+$("backupReminder").onclick=()=>alert("Recommended: download a backup weekly, and always before restoring, clearing data or major updates. Keep copies on two separate storage locations.");
+async function restoreBackupFile(f){if(activeRole!=="admin"){alert("Admin access required.");return;}if(!f)return;try{let obj=JSON.parse(await f.text());if(!obj||!Array.isArray(obj.transactions)||!obj.budgets||typeof obj.budgets!=="object"||!Array.isArray(obj.accountDefs)||obj.transactions.some(t=>!t||!/^\d{4}-\d{2}-\d{2}$/.test(String(t.date||""))||!Number.isFinite(Number(t.amount))||Number(t.amount)<=0||!(["Expense","Income","Transfer"].includes(t.type)))){throw new Error("Backup structure or transaction data is invalid");}if(!confirm("Before restoring, ADAA will download a safety backup of the current data. Continue?"))return;download(JSON.stringify(makeBackup(),null,2),"ADAA-pre-restore-safety-"+new Date().toISOString().slice(0,10)+".json","application/json");transactions=obj.transactions;budgets=obj.budgets||{};if(obj.security){adminPin=obj.security.adminPin||adminPin;entryPin=obj.security.entryPin||entryPin;idleMinutes=Number(obj.security.idleMinutes||0);localStorage.setItem("adaa_admin_pin",adminPin);localStorage.setItem("adaa_entry_pin",entryPin);localStorage.setItem("adaa_idle_minutes",String(idleMinutes));if($("idleMinutes"))$("idleMinutes").value=String(idleMinutes);}recurring=obj.recurring||[];emis=obj.emis||[];goals=obj.goals||[];openingBalances=obj.openingBalances||{};accountDefs=obj.accountDefs||accountDefs;ledgerAccounts=accountDefs.map(a=>a.name);save();render();alert("Backup restored successfully. A safety backup of the previous data was also downloaded.");}catch(err){alert("Restore failed: "+(err.message||"Invalid backup file"));}}
+$("restore").onchange=async e=>{await restoreBackupFile(e.target.files[0]);e.target.value=""};$("restoreCenter").onchange=async e=>{await restoreBackupFile(e.target.files[0]);e.target.value=""};
+$("clear").onclick=()=>{if(activeRole!=="admin"){alert("Admin access required.");return;}if(confirm("Delete all central transactions, budgets, recurring bills, loans, savings goals and opening balances for this family? This action is permanent.")){transactions=[];budgets={};recurring=[];emis=[];goals=[];openingBalances={};save();render()}};
+function download(content,name,type){let a=document.createElement("a"),url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
+fillCats();$("month").value=new Date().toISOString().slice(0,7);$("date").value=new Date().toISOString().slice(0,10);render();
+
+let adminPin=localStorage.getItem("adaa_admin_pin")||"1234", entryPin=localStorage.getItem("adaa_entry_pin")||"5678", idleMinutes=Number(localStorage.getItem("adaa_idle_minutes")||0), activeRole="locked", idleTimer;
+function resetIdleTimer(){if(idleTimer)clearTimeout(idleTimer);if(activeRole!=="locked"&&idleMinutes>0)idleTimer=setTimeout(lockADAA,idleMinutes*60000);}
+function finishUnlock(role){activeRole=role;document.body.classList.toggle("entry-mode",role==="entry");$("roleLabel").textContent=role==="admin"?"Admin":"Entry User";$("loginOverlay").style.display="none";if($("loginError"))$("loginError").textContent="";if(cloudMode&&$("lockBtn"))$("lockBtn").textContent="Lock";resetIdleTimer();updateCloudUi();}
+function unlockADAA(){if(cloudMode){if(cloudSession&&cloudHouseholdId&&centralDataReady){finishUnlock(cloudMemberRole||"entry");return;}$("cloudAuthStatus").textContent="Sign in to access the central family database.";return;}let pin=$("pinInput").value,role=pin===adminPin?"admin":pin===entryPin?"entry":"locked";if(role!=="locked"){finishUnlock(role);$("pinInput").value="";}else{$("loginError").textContent="Incorrect PIN. Try again.";$("pinInput").value="";}}
+function lockADAA(){if(idleTimer)clearTimeout(idleTimer);activeRole="locked";document.body.classList.remove("entry-mode");$("roleLabel").textContent="Locked";$("loginOverlay").style.display="flex";if($("pinInput"))$("pinInput").value="";if(cloudMode&&cloudSession&&cloudHouseholdId&&centralDataReady){$("cloudContinue").classList.remove("hidden");$("cloudAuthStatus").textContent="Your Supabase session is still active. Continue to reopen ADAA.";}}
+
+window.editTx=id=>{let t=transactions.find(x=>x.id===id);if(!t)return;let d=prompt("Description:",t.description);if(d===null)return;let a=prompt("Amount (₹):",String(t.amount));if(a===null)return;let date=prompt("Date (YYYY-MM-DD):",t.date);if(date===null)return;let cat=prompt("Category:",t.category||"Transfer");if(cat===null)return;let pay=prompt("Payment method:",t.payment||"");if(pay===null)return;let mem=prompt("Member (blank for Common, or Advik, Divya, Abhijith, Alankritha):",t.member||"Common / Family");if(mem===null)return;let acct=prompt("Account (Cash, Bank Account, UPI, Credit Card, Wallet, Other):",t.account||t.payment||"Cash");if(acct===null)return;if(!d.trim()||!Number.isFinite(Number(a))||Number(a)<=0||!/^\d{4}-\d{2}-\d{2}$/.test(date)){alert("Invalid description, amount or date.");return;}let candidate={...t,description:d.trim(),amount:Number(a),date,category:cat,payment:pay,account:acct,member:members.includes(mem)?mem:""};let dup=transactionDuplicate(candidate,t.id);if(dup&&!confirm("This edit resembles another transaction. Save anyway?"))return;if(date>new Date().toISOString().slice(0,10)&&!confirm("This transaction is dated in the future. Save it?"))return;Object.assign(t,candidate);save();render();};
+$("pinChangeForm").addEventListener("submit",e=>{e.preventDefault();if(activeRole!=="admin"){alert("Admin access required.");return;}let a=$("newAdminPin").value.trim(),b=$("newEntryPin").value.trim();if((a&&a.length<4)||(b&&b.length<4)){alert("PINs must contain at least 4 characters.");return;}if(a&&b&&a===b){alert("Admin and Entry User PINs must be different.");return;}if(a)adminPin=a;if(b)entryPin=b;localStorage.setItem("adaa_admin_pin",adminPin);localStorage.setItem("adaa_entry_pin",entryPin);$("newAdminPin").value=$("newEntryPin").value="";$("securityStatus").textContent="PINs updated successfully.";});
+$("idleMinutes").value=String(idleMinutes);$("idleMinutes").addEventListener("change",e=>{if(activeRole!=="admin"){alert("Admin access required.");e.target.value=String(idleMinutes);return;}idleMinutes=Number(e.target.value);localStorage.setItem("adaa_idle_minutes",String(idleMinutes));resetIdleTimer();$("securityStatus").textContent=idleMinutes?"Auto-lock set to "+idleMinutes+" minutes.":"Auto-lock disabled.";});
+["click","keydown","mousemove","touchstart","scroll"].forEach(evt=>document.addEventListener(evt,resetIdleTimer,{passive:true}));
+$("loginBtn").addEventListener("click",unlockADAA);$("pinInput").addEventListener("keydown",e=>{if(e.key==="Enter")unlockADAA()});$("lockBtn").addEventListener("click",lockADAA);
+
+// Supabase centralized database. PostgreSQL is the single source of truth.
+// The browser keeps only an in-memory working set; finance records are not persisted to localStorage.
+function cloudConfig(){return window.ADAA_SUPABASE_CONFIG||{url:"",anonKey:""};}
+function cloudConfigured(){const c=cloudConfig();return !!(c.url&&c.anonKey&&!c.url.includes("YOUR_PROJECT")&&!c.anonKey.includes("YOUR_")&&window.supabase&&window.supabase.createClient);}
+function getCloudPayload(){return {transactions,budgets,recurring,emis,goals,openingBalances,accountDefs};}
+function cloneData(value){return JSON.parse(JSON.stringify(value));}
+function cloudStatus(message,kind=""){const box=$("cloudSyncStatus");if(box)box.textContent=message;const pill=$("cloudConnectionInfo");if(pill){pill.textContent=cloudMode?(cloudSession?`${cloudHouseholdName||"ADAA Family"} · ${cloudMemberRole||"Signed in"} · Central database` : "Supabase configured · signed out") : "Supabase configuration required";pill.className="cloud-connection"+(kind?" "+kind:"");}}
+function updateCloudUi(){
+ const hasHousehold=!!(cloudSession&&cloudHouseholdId),ready=hasHousehold&&centralDataReady;
+ $("cloudSyncNow").classList.toggle("hidden",!centralConflict||centralNeedsReload);
+ $("cloudReloadRemote").classList.toggle("hidden",!ready);
+ $("cloudLogout").classList.toggle("hidden",!cloudSession);
+ $("cloudSignOutOverlay").classList.toggle("hidden",!cloudSession);
+ $("cloudContinue").classList.toggle("hidden",!ready||activeRole!=="locked");
+ if(!cloudMode)cloudStatus("Supabase is not configured. Add the project URL and publishable key to supabase-config.js.");
+ else if(centralConflict)cloudStatus("A newer database version exists. Reload central data before making more changes.","conflict");
+ else if(ready)cloudStatus("Connected · all ADAA records are stored centrally in Supabase PostgreSQL.","connected");
+ else if(cloudSession&&!cloudHouseholdId)cloudStatus("Signed in. Create your family's workspace to initialize the central database.");
+ else if(!cloudSession)cloudStatus("Sign in with your Admin-created ADAA account.");
+}
+function validateCentralPayload(data){
+ if(!data||!Array.isArray(data.transactions)||!Array.isArray(data.accountDefs)||!data.budgets||typeof data.budgets!=="object")throw new Error("The central database returned an incomplete ADAA dataset.");
+ if(data.transactions.some(t=>!t||!t.id||!/^\d{4}-\d{2}-\d{2}$/.test(String(t.date||""))||!Number.isFinite(Number(t.amount))||Number(t.amount)<=0||!["Expense","Income","Transfer"].includes(t.type)))throw new Error("A transaction in the central database failed validation.");
+}
+async function loadCentralData(){
+ if(!cloudHouseholdId)throw new Error("No family workspace is linked to this account.");
+ const tables=["transactions","accounts","budgets","recurring_bills","loans","savings_goals","opening_balances"];
+ let stableRows=null,stableVersion=0;
+ // Read a version before and after the parallel table reads. If a write committed
+ // during the read, retry so the UI never treats a mixed snapshot as current.
+ for(let attempt=0;attempt<3;attempt++){
+  const before=await supabaseClient.from("household_versions").select("version").eq("household_id",cloudHouseholdId).single();
+  if(before.error)throw new Error("Could not read central database version: "+before.error.message);
+  const results=await Promise.all(tables.map(table=>supabaseClient.from(table).select("*").eq("household_id",cloudHouseholdId)));
+  for(let i=0;i<results.length;i++)if(results[i].error)throw new Error(`Could not load ${tables[i]}: ${results[i].error.message}`);
+  const after=await supabaseClient.from("household_versions").select("version").eq("household_id",cloudHouseholdId).single();
+  if(after.error)throw new Error("Could not verify central database version: "+after.error.message);
+  const vBefore=Number(before.data?.version||0),vAfter=Number(after.data?.version||0);
+  if(vBefore===vAfter){stableRows=results.map(r=>r.data||[]);stableVersion=vAfter;break;}
+ }
+ if(!stableRows)throw new Error("Family data changed repeatedly while loading. Please refresh and try again.");
+ const [txRows,accountRows,budgetRows,recRows,loanRows,goalRows,openingRows]=stableRows;
+ transactions=txRows.map(r=>r.payload||{});
+ accountDefs=accountRows.map(r=>({name:r.name,type:r.account_type}));
+ if(!accountDefs.length)accountDefs=["Cash","Bank Account","UPI","Credit Card","Wallet","Other"].map(name=>({name,type:name}));
+ budgets={};budgetRows.forEach(r=>budgets[r.category]=Number(r.amount));
+ recurring=recRows.map(r=>r.payload||{});
+ emis=loanRows.map(r=>r.payload||{});
+ goals=goalRows.map(r=>r.payload||{});
+ openingBalances={};openingRows.forEach(r=>openingBalances[r.account_name]=Number(r.balance));
+ ledgerAccounts=accountDefs.map(a=>a.name);
+ centralVersion=stableVersion;
+ const current=getCloudPayload();validateCentralPayload(current);
+ centralBaseline=cloneData(current);centralDataReady=true;centralConflict=false;centralNeedsReload=false;
+ render();
+}
+function mapBy(items,key){return new Map((items||[]).map(item=>[String(item[key]),item]));}
+function diffArray(before,after,key){
+ const a=mapBy(before,key),b=mapBy(after,key),upsert=[],remove=[];
+ for(const [id,item] of b){if(!a.has(id)||JSON.stringify(a.get(id))!==JSON.stringify(item))upsert.push(item);}
+ for(const id of a.keys())if(!b.has(id))remove.push(id);
+ return {upsert,delete:remove};
+}
+function diffObject(before,after,valueName){
+ const upsert=[],remove=[];for(const [key,value] of Object.entries(after||{})){if(!Object.prototype.hasOwnProperty.call(before||{},key)||Number((before||{})[key])!==Number(value))upsert.push(valueName==="amount"?{category:key,amount:Number(value)}:{account_name:key,balance:Number(value)});}
+ for(const key of Object.keys(before||{}))if(!Object.prototype.hasOwnProperty.call(after||{},key))remove.push(key);
+ return {upsert,delete:remove};
+}
+function buildCentralChanges(now=getCloudPayload()){
+ const base=centralBaseline||{transactions:[],budgets:{},recurring:[],emis:[],goals:[],openingBalances:{},accountDefs:[]};
+ const all={
+  transactions:diffArray(base.transactions,now.transactions,"id"),
+  accounts:diffArray(base.accountDefs,now.accountDefs,"name"),
+  budgets:diffObject(base.budgets,now.budgets,"amount"),
+  recurring:diffArray(base.recurring,now.recurring,"id"),
+  loans:diffArray(base.emis,now.emis,"id"),
+  goals:diffArray(base.goals,now.goals,"id"),
+  opening_balances:diffObject(base.openingBalances,now.openingBalances,"balance")
+ };
+ return Object.fromEntries(Object.entries(all).filter(([,group])=>(group.upsert||[]).length||(group.delete||[]).length));
+}
+function changesEmpty(changes){return Object.values(changes).every(group=>(group.upsert||[]).length===0&&(group.delete||[]).length===0);}
+function queueCentralSave(){
+ if(!centralDataReady||!cloudHouseholdId||centralConflict)return;
+ if(centralSaveTimer)clearTimeout(centralSaveTimer);
+ centralSaveTimer=setTimeout(()=>flushCentralSave(),450);
+}
+async function flushCentralSave(){
+ if(!centralDataReady||!cloudHouseholdId||centralConflict)return;
+ if(centralSaveInFlight){centralSaveAgain=true;return;}
+ const snapshot=cloneData(getCloudPayload());
+ const changes=buildCentralChanges(snapshot);if(changesEmpty(changes))return;
+ centralSaveInFlight=true;cloudStatus("Saving changes to the central database…");
+ try{
+  const {data,error}=await supabaseClient.rpc("adaa_apply_changes",{p_household_id:cloudHouseholdId,p_expected_version:centralVersion,p_changes:changes});
+  if(error)throw error;
+  centralVersion=Number(data);centralBaseline=snapshot;centralConflict=false;centralNeedsReload=false;
+  cloudStatus("Saved to central database · "+new Date().toLocaleTimeString(),"connected");
+ }catch(err){
+  const message=String(err?.message||err);
+  if(message.includes("ADAA_CONFLICT")||err?.code==="40001"||message.toLowerCase().includes("version")){
+   centralConflict=true;centralNeedsReload=true;cloudStatus("Another device changed the central records. Reload central data before continuing.","conflict");
+  }else{
+   cloudStatus("Database save failed: "+message+". Your unsaved changes remain in this open tab. Check the connection and use Retry failed save.","conflict");
+   centralConflict=true;centralNeedsReload=false;
+  }
+  updateCloudUi();
+ }finally{
+  centralSaveInFlight=false;
+  if(centralSaveAgain){centralSaveAgain=false;if(!centralConflict)queueCentralSave();}
+  else if(!centralConflict&&!changesEmpty(buildCentralChanges()))queueCentralSave();
+ }
+}
+async function reloadCentralData(){
+ if(!cloudHouseholdId)return;
+ if(centralBaseline&&!changesEmpty(buildCentralChanges())){
+  if(!confirm("There are unsaved changes in this tab. Download a JSON recovery backup and discard those unsaved changes before reloading the central database?"))return;
+  download(JSON.stringify(makeBackup(),null,2),"ADAA-unsaved-recovery-"+new Date().toISOString().slice(0,10)+".json","application/json");
+ }
+ await loadCentralData();centralConflict=false;centralNeedsReload=false;render();
+ if(activeRole==="locked")finishUnlock(cloudMemberRole);
+ cloudStatus("Central database reloaded successfully.","connected");updateCloudUi();
+}
+async function checkCentralVersion(){
+ if(!centralDataReady||!cloudHouseholdId||centralVersionCheckInFlight||centralSaveInFlight||centralConflict)return;
+ centralVersionCheckInFlight=true;
+ try{
+  const {data,error}=await supabaseClient.from("household_versions").select("version").eq("household_id",cloudHouseholdId).single();
+  if(error)throw error;
+  const remoteVersion=Number(data?.version||0);
+  if(remoteVersion>centralVersion){
+   if(!changesEmpty(buildCentralChanges())){
+    centralConflict=true;centralNeedsReload=true;cloudStatus("Another device has updated the central database. Your unsaved changes are still in this tab; download a recovery backup or reload after reviewing them.","conflict");updateCloudUi();
+   }else{
+    await loadCentralData();render();cloudStatus("Family records refreshed from the central database.","connected");updateCloudUi();
+   }
+  }
+ }catch(err){cloudStatus("Could not check for updates from other devices: "+(err.message||err),"conflict");}
+ finally{centralVersionCheckInFlight=false;}
+}
+window.addEventListener("focus",checkCentralVersion);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkCentralVersion();});
+
+async function loadCloudMembership(){
+ const {data,error}=await supabaseClient.from("household_members").select("household_id,role,households(id,name)").eq("user_id",cloudSession.user.id).limit(1);
+ if(error)throw error;
+ if(!data||!data.length){cloudHouseholdId=null;cloudHouseholdName="";cloudMemberRole="";centralDataReady=false;$("cloudHouseholdSetup").classList.remove("hidden");$("cloudContinue").classList.add("hidden");$("cloudAuthStatus").textContent="No family workspace is linked to this account. Create the ADAA family workspace or ask the Admin to add this account.";updateCloudUi();return;}
+ const m=data[0],h=Array.isArray(m.households)?m.households[0]:m.households;
+ cloudHouseholdId=m.household_id;cloudHouseholdName=h?.name||"ADAA Family";cloudMemberRole=m.role==="admin"?"admin":"entry";
+ $("cloudHouseholdSetup").classList.add("hidden");$("cloudAuthStatus").textContent="Loading your family's central records…";
+ await loadCentralData();finishUnlock(cloudMemberRole);
+ if(cloudMemberRole==="admin"){applyRecurring();applyEmiTransactions();}
+ render();checkUpcomingReminders();cloudStatus("Connected to the central family database.","connected");updateCloudUi();
+}
+async function afterCloudAuth(){const {data:{session},error}=await supabaseClient.auth.getSession();if(error)throw error;cloudSession=session;if(!session){$("cloudAuthStatus").textContent="Sign in with your Admin-created account.";updateCloudUi();return;}$("cloudAuthStatus").textContent=`Signed in as ${session.user.email||"your account"}. Checking family access…`;await loadCloudMembership();}
+async function createCloudHousehold(){
+ if(!cloudSession)throw new Error("Sign in first.");
+ const name=$("cloudHouseholdName").value.trim();if(!name)throw new Error("Enter a family workspace name.");
+ if(!confirm("Create the ADAA Family workspace in Supabase? All finance records will be stored centrally. This does not upload any browser data."))return;
+ const {data,error}=await supabaseClient.rpc("adaa_create_household",{p_name:name});if(error)throw error;
+ cloudHouseholdId=data;cloudHouseholdName=name;cloudMemberRole="admin";$("cloudHouseholdSetup").classList.add("hidden");
+ await loadCentralData();finishUnlock("admin");render();cloudStatus("Family workspace created. ADAA is connected to its central database.","connected");updateCloudUi();
+}
+async function cloudSignIn(){
+ const email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;if(!email||!password)throw new Error("Enter your email and password.");
+ const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;cloudSession=data.session;
+ await loadCloudMembership();
+}
+function bindCloudButton(id,fn){$(id).addEventListener("click",async()=>{const status=$("cloudAuthStatus");try{status.textContent="Working…";await fn();}catch(err){status.textContent=err.message||String(err);}});}
+bindCloudButton("cloudSignIn",cloudSignIn);bindCloudButton("cloudCreateHousehold",createCloudHousehold);
+$("cloudContinue").addEventListener("click",()=>{if(cloudSession&&cloudHouseholdId&&centralDataReady)finishUnlock(cloudMemberRole);});
+$("cloudSyncNow").addEventListener("click",()=>{centralConflict=false;centralNeedsReload=false;queueCentralSave();flushCentralSave();});
+$("cloudReloadRemote").addEventListener("click",()=>reloadCentralData().catch(err=>cloudStatus("Could not reload central data: "+err.message,"conflict")));
+async function signOutCloud(){
+ try{if(centralSaveTimer)clearTimeout(centralSaveTimer);if(centralDataReady&&!centralConflict)await flushCentralSave();await supabaseClient.auth.signOut();
+  cloudSession=null;cloudHouseholdId=null;cloudHouseholdName="";cloudMemberRole="";centralDataReady=false;centralBaseline=null;centralVersion=0;centralConflict=false;
+  transactions=[];budgets={};recurring=[];emis=[];goals=[];openingBalances={};accountDefs=["Cash","Bank Account","UPI","Credit Card","Wallet","Other"].map(name=>({name,type:name}));ledgerAccounts=accountDefs.map(a=>a.name);
+  lockADAA();$("cloudAuthStatus").textContent="Signed out. Sign in to access the central family database.";updateCloudUi();
+ }catch(err){cloudStatus("Sign-out issue: "+err.message,"conflict");}
+}
+$("cloudLogout").addEventListener("click",signOutCloud);$("cloudSignOutOverlay").addEventListener("click",signOutCloud);
+async function initializeCloud(){
+ cloudMode=cloudConfigured();$("localPinLogin").classList.add("hidden");$("cloudLogin").classList.remove("hidden");
+ $("loginIntro").textContent="ADAA Family Finance · Secure login";$("pinChangeForm").classList.add("hidden");$("securityStatus").textContent="Cloud access is managed by Supabase Auth and database permissions.";
+ if(!cloudMode){$("cloudAuthStatus").textContent="Supabase is not configured. Check supabase-config.js and the Supabase JavaScript library.";cloudStatus("Supabase configuration required","conflict");return;}
+ const redirectError=consumeAuthRedirectError(),cfg=cloudConfig();
+ supabaseClient=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ try{await afterCloudAuth();if(redirectError)$("cloudAuthStatus").textContent=redirectError;}catch(err){$("cloudAuthStatus").textContent=(redirectError?redirectError+" ":"")+"Could not connect to the central database: "+(err.message||err);}
+}
+function cloudEmailRedirectUrl(){return new URL("./",window.location.href).href;}
+function consumeAuthRedirectError(){
+ const params=new URLSearchParams((window.location.hash||"").replace(/^#/,"")),code=params.get("error_code"),description=params.get("error_description");
+ if(!code&&!description)return "";try{history.replaceState(null,document.title,window.location.pathname+window.location.search);}catch{}
+ if(code==="otp_expired")return "This verification link has expired or was already used. Ask the ADAA Admin to check your account status.";
+ return "Authentication returned an error: "+(description||code||"Unknown error");
+}
+initializeCloud();
+
+// Mobile navigation targets real section containers and reports the selected destination.
+const mobileNavButtons=[...document.querySelectorAll('.mobile-nav [data-target]')];
+mobileNavButtons.forEach(btn=>btn.addEventListener('click',()=>{
+ const target=document.getElementById(btn.dataset.target);
+ if(!target)return;
+ target.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+ mobileNavButtons.forEach(item=>{const active=item===btn;item.classList.toggle('is-active',active);if(active)item.setAttribute('aria-current','location');else item.removeAttribute('aria-current');});
+}));
+
+</script>
+</body></html>
